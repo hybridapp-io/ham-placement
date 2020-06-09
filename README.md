@@ -1,0 +1,2 @@
+# ham-placement
+Hybrid PlacementRule
