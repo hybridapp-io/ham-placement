@@ -6,29 +6,40 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-type DeployerSeletor struct {
-	Deployers      *corev1.LocalObjectReference `json:"deployers,omitempty"`
-	DeployerLabels *metav1.LabelSelector        `json:"deployerLabels,omitempty"`
-}
+type AdvisorType string
 
-type PlacementHint struct {
-	SchedulerName string                `json:"schedulerName"`
-	Priority      *int                  `json:"priority,omitempty"`
-	Rules         *runtime.RawExtension `json:"rules,omitempty"`
+const (
+	AdvisorTypeUnknown  AdvisorType = ""
+	AdvisorTypeFilter   AdvisorType = "filter"
+	AdvisorTypePriority AdvisorType = "priority"
+)
+
+type Advisor struct {
+	Name   string                `json:"name"`
+	Type   *AdvisorType          `json:"type,omitempty"`
+	Weight *int16                `json:"weight,omitempty"`
+	Rules  *runtime.RawExtension `json:"rules,omitempty"`
 }
 
 // PlacementRuleSpec defines the desired state of PlacementRule
+// For different deployer type, the target might be different.
+// Default kuberentes target: clusters.clusterregistry.k8s.io/v1alpha1
 type PlacementRuleSpec struct {
-	DeployerSelector DeployerSeletor `json:",inline"`
-	PlacementHints   []PlacementHint `json:"hints,omitempty"`
+	DeployerType   *string                 `json:"deployerType,omitempty"`   // default: kubernetes
+	Targets        *corev1.ObjectReference `json:"targets,omitempty"`        // nil: all
+	TargetLabels   *metav1.LabelSelector   `json:"targetLabels,omitempty"`   // nil: all
+	DecisionWeight *int16                  `json:"decisionWeight,omitempty"` // nil: 10000
+	Replicas       *int16                  `json:"replicas,omitempty"`       // nil: all
+	Advisors       []Advisor               `json:"advisors,omitempty"`
 }
 
 type Recommendation []corev1.ObjectReference
 
 // PlacementRuleStatus defines the observed state of PlacementRule
 type PlacementRuleStatus struct {
+	LastUpdateTime  *metav1.Time              `json:"lastUpdateTime,omitempty"`
 	Candidates      []corev1.ObjectReference  `json:"candidates,omitempty"`
-	Recommendations map[string]Recommendation `json:"recommendations,omitempty"`
+	Recommendations map[string]Recommendation `json:"recommendations,omitempty"` // key: advisor name
 	Decisions       []corev1.ObjectReference  `json:"decisions,omitempty"`
 }
 
