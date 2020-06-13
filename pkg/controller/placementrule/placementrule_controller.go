@@ -49,7 +49,6 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-
 	rec := &ReconcilePlacementRule{
 		client:        mgr.GetClient(),
 		scheme:        mgr.GetScheme(),
@@ -142,11 +141,26 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 
 	var candiates []corev1.ObjectReference
 
-	tl, err := r.dynamicClient.Resource(defaultResource).List(metav1.ListOptions{})
+	// select by targetLabels, nil = everything
+	listopts := metav1.ListOptions{}
+
+	if instance.Spec.TargetLabels != nil {
+		selector, err := metav1.LabelSelectorAsSelector(instance.Spec.TargetLabels)
+		if err != nil {
+			klog.Error("Failed to parse label selector with error: ", err)
+			return nil, err
+		}
+
+		listopts.LabelSelector = selector.String()
+	}
+
+	tl, err := r.dynamicClient.Resource(defaultResource).List(listopts)
 	if err != nil {
 		klog.Error("Failed to list ", defaultResource.String(), " with error: ", err)
 		return nil, err
 	}
+
+	// build candidate list, filter targets, nil = everything
 
 	for _, obj := range tl.Items {
 		or := corev1.ObjectReference{
@@ -156,27 +170,34 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 			APIVersion: obj.GetAPIVersion(),
 			UID:        obj.GetUID(),
 		}
-		candiates = append(candiates, or)
+
+		pass := true
+
+		// check targets
+		if len(instance.Spec.Targets) > 0 {
+			pass = false
+		}
+
+		for _, t := range instance.Spec.Targets {
+			if t.Name != "" && t.Name != or.Name {
+				continue
+			}
+
+			if t.Namespace != "" && t.Namespace != or.Namespace {
+				continue
+			}
+
+			pass = true
+
+			break
+		}
+
+		if pass {
+			candiates = append(candiates, or)
+		}
 	}
 
 	return candiates, nil
-}
-
-func (r *ReconcilePlacementRule) ResetDecisionMakingProcess(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) error {
-	now := metav1.Now()
-	instance.Status.LastUpdateTime = &now
-
-	instance.Status.Candidates = candidates
-	instance.Status.Recommendations = nil
-	instance.Status.Eliminators = nil
-
-	return r.client.Status().Update(context.TODO(), instance)
-}
-
-func (r *ReconcilePlacementRule) ContinueDecisionMakingProcess(instance *corev1alpha1.PlacementRule) error {
-	var err error
-
-	return err
 }
 
 func isSameCandidateList(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) bool {

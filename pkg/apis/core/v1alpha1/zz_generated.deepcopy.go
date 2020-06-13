@@ -126,8 +126,8 @@ func (in *PlacementRuleSpec) DeepCopyInto(out *PlacementRuleSpec) {
 	}
 	if in.Targets != nil {
 		in, out := &in.Targets, &out.Targets
-		*out = new(v1.ObjectReference)
-		**out = **in
+		*out = make([]v1.ObjectReference, len(*in))
+		copy(*out, *in)
 	}
 	if in.TargetLabels != nil {
 		in, out := &in.TargetLabels, &out.TargetLabels
