@@ -3,8 +3,8 @@ module github.com/hybridapp-io/ham-placement
 go 1.13
 
 require (
+	github.com/onsi/gomega v1.8.1
 	github.com/operator-framework/operator-sdk v0.17.0
-	github.com/prometheus/common v0.9.1
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.17.4
 	k8s.io/apimachinery v0.17.4
@@ -15,5 +15,7 @@ require (
 
 replace (
 	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.3.2+incompatible // Required by OLM
+	github.com/otiai10/copy => github.com/otiai10/copy v1.0.2
+	github.com/otiai10/mint => github.com/otiai10/mint v1.3.0
 	k8s.io/client-go => k8s.io/client-go v0.17.4 // Required by prometheus-operator
 )

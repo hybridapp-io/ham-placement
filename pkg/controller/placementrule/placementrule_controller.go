@@ -17,8 +17,6 @@ package placementrule
 import (
 	"context"
 
-	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
@@ -28,6 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
 /**
@@ -60,16 +60,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner PlacementRule
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &corev1alpha1.PlacementRule{},
-	})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -86,8 +76,6 @@ type ReconcilePlacementRule struct {
 
 // Reconcile reads that state of the cluster for a PlacementRule object and makes changes based on the state read
 // and what is in the PlacementRule.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -96,6 +84,7 @@ func (r *ReconcilePlacementRule) Reconcile(request reconcile.Request) (reconcile
 
 	// Fetch the PlacementRule instance
 	instance := &corev1alpha1.PlacementRule{}
+
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
