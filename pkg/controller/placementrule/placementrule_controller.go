@@ -21,8 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/klog"
 
@@ -35,6 +33,8 @@ import (
 
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
+
+var PlacementDecisionMaker DecisionMaker
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -49,10 +49,15 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	if PlacementDecisionMaker == nil {
+		PlacementDecisionMaker = &DefaultDecisionMaker{}
+	}
+
 	rec := &ReconcilePlacementRule{
 		client:        mgr.GetClient(),
 		scheme:        mgr.GetScheme(),
 		dynamicClient: dynamic.NewForConfigOrDie(mgr.GetConfig()),
+		decisionMaker: PlacementDecisionMaker,
 	}
 
 	return rec
@@ -85,6 +90,7 @@ type ReconcilePlacementRule struct {
 	client        client.Client
 	scheme        *runtime.Scheme
 	dynamicClient dynamic.Interface
+	decisionMaker DecisionMaker
 }
 
 // Reconcile reads that state of the cluster for a PlacementRule object and makes changes based on the state read
@@ -116,126 +122,52 @@ func (r *ReconcilePlacementRule) Reconcile(request reconcile.Request) (reconcile
 		klog.Error("Failed to generate candidates for decision with error: ", err)
 	}
 
+	updatestatus := false
 	// Step 2: compare new candidates with existing cadidates + eliminators
-	if isSameCandidateList(ncans, instance) {
-		err = r.ContinueDecisionMakingProcess(instance)
-	} else {
-		err = r.ResetDecisionMakingProcess(ncans, instance)
+	if !isSameCandidateList(ncans, instance) {
+		r.ResetDecisionMakingProcess(ncans, instance)
+
+		updatestatus = true
+	}
+
+	updatedecisions := r.ContinueDecisionMakingProcess(instance)
+
+	if updatestatus || updatedecisions {
+		err = r.client.Status().Update(context.TODO(), instance)
 	}
 
 	return reconcile.Result{}, err
 }
 
-var (
-	defaultResource = schema.GroupVersionResource{
-		Resource: "clusters",
-		Version:  "v1alpha1",
-		Group:    "clusterregistry.k8s.io",
-	}
-)
+func (r *ReconcilePlacementRule) ResetDecisionMakingProcess(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) {
+	now := metav1.Now()
+	instance.Status.LastUpdateTime = &now
+	instance.Status.Candidates = candidates
+	instance.Status.Recommendations = nil
+	instance.Status.Eliminators = nil
 
-func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.PlacementRule) ([]corev1.ObjectReference, error) {
-	if instance == nil {
-		return nil, nil
-	}
+	r.decisionMaker.ResetDecisionMakingProcess(candidates, instance)
+}
 
-	var candiates []corev1.ObjectReference
+func (r *ReconcilePlacementRule) ContinueDecisionMakingProcess(instance *corev1alpha1.PlacementRule) bool {
+	readytodecide := true
+	update := false
 
-	// select by targetLabels, nil = everything
-	listopts := metav1.ListOptions{}
-
-	if instance.Spec.TargetLabels != nil {
-		selector, err := metav1.LabelSelectorAsSelector(instance.Spec.TargetLabels)
-		if err != nil {
-			klog.Error("Failed to parse label selector with error: ", err)
-			return nil, err
-		}
-
-		listopts.LabelSelector = selector.String()
-	}
-
-	tl, err := r.dynamicClient.Resource(defaultResource).List(listopts)
-	if err != nil {
-		klog.Error("Failed to list ", defaultResource.String(), " with error: ", err)
-		return nil, err
-	}
-
-	// build candidate list, filter targets, nil = everything
-
-	for _, obj := range tl.Items {
-		or := corev1.ObjectReference{
-			Kind:       obj.GroupVersionKind().Kind,
-			Name:       obj.GetName(),
-			Namespace:  obj.GetNamespace(),
-			APIVersion: obj.GetAPIVersion(),
-			UID:        obj.GetUID(),
-		}
-
-		pass := true
-
-		// check targets
-		if len(instance.Spec.Targets) > 0 {
-			pass = false
-		}
-
-		for _, t := range instance.Spec.Targets {
-			if t.Name != "" && t.Name != or.Name {
-				continue
-			}
-
-			if t.Namespace != "" && t.Namespace != or.Namespace {
-				continue
-			}
-
-			pass = true
-
+	for _, adv := range instance.Spec.Advisors {
+		if instance.Status.Recommendations == nil {
+			readytodecide = false
 			break
 		}
 
-		if pass {
-			candiates = append(candiates, or)
+		if _, ok := instance.Status.Recommendations[adv.Name]; !ok {
+			readytodecide = false
+			break
 		}
 	}
 
-	return candiates, nil
-}
-
-func isSameCandidateList(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) bool {
-	if candidates == nil && instance == nil {
-		return true
+	if readytodecide {
+		update = r.decisionMaker.ContinueDecisionMakingProcess(instance)
 	}
 
-	if candidates == nil || instance == nil {
-		return false
-	}
-
-	newmap := make(map[types.UID]bool)
-	// generate map for src
-	for _, or := range candidates {
-		newmap[or.UID] = true
-	}
-
-	exarray := instance.Status.Candidates
-	if len(exarray) > 0 {
-		for _, or := range exarray {
-			if _, ok := newmap[or.UID]; !ok {
-				return false
-			}
-
-			delete(newmap, or.UID)
-		}
-	}
-
-	exarray = instance.Status.Eliminators
-	if len(exarray) > 0 {
-		for _, or := range exarray {
-			if _, ok := newmap[or.UID]; !ok {
-				return false
-			}
-
-			delete(newmap, or.UID)
-		}
-	}
-
-	return len(newmap) == 0
+	return update
 }
