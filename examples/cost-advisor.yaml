@@ -1,16 +1,12 @@
 apiVersion: core.hybridapp.io/v1alpha1
 kind: PlacementRule
 metadata:
-  name: rhacm-clusters
+  name: cost-advisor
 spec:
   replicas: 1
   targetLabels:
     matchLabels:
       name: mymini
   advisors:
-  - name: rhacm
-    isRequired: true
-    priority: 50
-    rules:
-      resourceHint: 
-        type: cpu
+  - name: cost    
+    weight: 50

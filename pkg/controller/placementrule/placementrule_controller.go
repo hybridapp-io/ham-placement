@@ -17,9 +17,15 @@ package placementrule
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/klog"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -43,7 +49,14 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcilePlacementRule{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+
+	rec := &ReconcilePlacementRule{
+		client:        mgr.GetClient(),
+		scheme:        mgr.GetScheme(),
+		dynamicClient: dynamic.NewForConfigOrDie(mgr.GetConfig()),
+	}
+
+	return rec
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -70,8 +83,9 @@ var _ reconcile.Reconciler = &ReconcilePlacementRule{}
 type ReconcilePlacementRule struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client        client.Client
+	scheme        *runtime.Scheme
+	dynamicClient dynamic.Interface
 }
 
 // Reconcile reads that state of the cluster for a PlacementRule object and makes changes based on the state read
@@ -97,6 +111,110 @@ func (r *ReconcilePlacementRule) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	// Pod already exists - don't requeue
-	return reconcile.Result{}, nil
+	// Step 1: generate new candidates from spec
+	ncans, err := r.generateCandidates(instance)
+	if err != nil {
+		klog.Error("Failed to generate candidates for decision with error: ", err)
+	}
+
+	// Step 2: compare new candidates with existing cadidates + eliminators
+	if isSameCandidateList(ncans, instance) {
+		err = r.ContinueDecisionMakingProcess(instance)
+	} else {
+		err = r.ResetDecisionMakingProcess(ncans, instance)
+	}
+
+	return reconcile.Result{}, err
+}
+
+var (
+	defaultResource = schema.GroupVersionResource{
+		Resource: "clusters",
+		Version:  "v1alpha1",
+		Group:    "clusterregistry.k8s.io",
+	}
+)
+
+func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.PlacementRule) ([]corev1.ObjectReference, error) {
+	if instance == nil {
+		return nil, nil
+	}
+
+	var candiates []corev1.ObjectReference
+
+	tl, err := r.dynamicClient.Resource(defaultResource).List(metav1.ListOptions{})
+	if err != nil {
+		klog.Error("Failed to list ", defaultResource.String(), " with error: ", err)
+		return nil, err
+	}
+
+	for _, obj := range tl.Items {
+		or := corev1.ObjectReference{
+			Kind:       obj.GroupVersionKind().Kind,
+			Name:       obj.GetName(),
+			Namespace:  obj.GetNamespace(),
+			APIVersion: obj.GetAPIVersion(),
+			UID:        obj.GetUID(),
+		}
+		candiates = append(candiates, or)
+	}
+
+	return candiates, nil
+}
+
+func (r *ReconcilePlacementRule) ResetDecisionMakingProcess(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) error {
+	now := metav1.Now()
+	instance.Status.LastUpdateTime = &now
+
+	instance.Status.Candidates = candidates
+	instance.Status.Recommendations = nil
+	instance.Status.Eliminators = nil
+
+	return r.client.Status().Update(context.TODO(), instance)
+}
+
+func (r *ReconcilePlacementRule) ContinueDecisionMakingProcess(instance *corev1alpha1.PlacementRule) error {
+	var err error
+
+	return err
+}
+
+func isSameCandidateList(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) bool {
+	if candidates == nil && instance == nil {
+		return true
+	}
+
+	if candidates == nil || instance == nil {
+		return false
+	}
+
+	newmap := make(map[types.UID]bool)
+	// generate map for src
+	for _, or := range candidates {
+		newmap[or.UID] = true
+	}
+
+	exarray := instance.Status.Candidates
+	if len(exarray) > 0 {
+		for _, or := range exarray {
+			if _, ok := newmap[or.UID]; !ok {
+				return false
+			}
+
+			delete(newmap, or.UID)
+		}
+	}
+
+	exarray = instance.Status.Eliminators
+	if len(exarray) > 0 {
+		for _, or := range exarray {
+			if _, ok := newmap[or.UID]; !ok {
+				return false
+			}
+
+			delete(newmap, or.UID)
+		}
+	}
+
+	return len(newmap) == 0
 }

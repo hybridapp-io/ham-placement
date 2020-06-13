@@ -53,6 +53,7 @@ type Recommendation []corev1.ObjectReference
 type PlacementRuleStatus struct {
 	LastUpdateTime  *metav1.Time              `json:"lastUpdateTime,omitempty"`
 	Candidates      []corev1.ObjectReference  `json:"candidates,omitempty"`
+	Eliminators     []corev1.ObjectReference  `json:"eliminators,omitempty"`
 	Recommendations map[string]Recommendation `json:"recommendations,omitempty"` // key: advisor name
 	Decisions       []corev1.ObjectReference  `json:"decisions,omitempty"`
 }

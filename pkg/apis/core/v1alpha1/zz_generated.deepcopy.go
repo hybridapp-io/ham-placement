@@ -176,6 +176,11 @@ func (in *PlacementRuleStatus) DeepCopyInto(out *PlacementRuleStatus) {
 		*out = make([]v1.ObjectReference, len(*in))
 		copy(*out, *in)
 	}
+	if in.Eliminators != nil {
+		in, out := &in.Eliminators, &out.Eliminators
+		*out = make([]v1.ObjectReference, len(*in))
+		copy(*out, *in)
+	}
 	if in.Recommendations != nil {
 		in, out := &in.Recommendations, &out.Recommendations
 		*out = make(map[string]Recommendation, len(*in))
