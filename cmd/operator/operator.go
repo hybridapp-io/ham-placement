@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
+	"github.com/hybridapp-io/ham-placement/pkg/advisor"
 	"github.com/hybridapp-io/ham-placement/pkg/apis"
 	"github.com/hybridapp-io/ham-placement/pkg/controller"
 	"github.com/hybridapp-io/ham-placement/version"
@@ -115,6 +116,12 @@ func RunOperator(sig <-chan struct{}) {
 
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {
+		klog.Error(err, "")
+		os.Exit(errorExitCode)
+	}
+
+	// Setup all Advisors
+	if err := advisor.AddToManager(mgr); err != nil {
 		klog.Error(err, "")
 		os.Exit(errorExitCode)
 	}

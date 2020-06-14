@@ -14,20 +14,9 @@
 
 package advisor
 
-import (
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-)
+import "github.com/hybridapp-io/ham-placement/pkg/advisor/alphabet"
 
-// AddToAdvisorsFunc is a list of functions to add all Controllers to the Manager
-var AddToAdvisorsFunc []func(manager.Manager) error
-
-// AddToManager adds all Controllers to the Manager
-func AddToManager(m manager.Manager) error {
-	for _, f := range AddToAdvisorsFunc {
-		if err := f(m); err != nil {
-			return err
-		}
-	}
-
-	return nil
+func init() {
+	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
+	AddToAdvisorsFunc = append(AddToAdvisorsFunc, alphabet.Add)
 }

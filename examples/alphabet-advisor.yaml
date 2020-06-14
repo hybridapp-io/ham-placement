@@ -1,12 +1,12 @@
 apiVersion: core.hybridapp.io/v1alpha1
 kind: PlacementRule
 metadata:
-  name: cost-advisor
+  name: alphabet-advisor
 spec:
   replicas: 1
   targetLabels:
     matchLabels:
-      name: mymini
+      cloud: IBM
   advisors:
-  - name: cost    
+  - name: alphabet    
     weight: 50
