@@ -49,7 +49,7 @@ func (oi objectReferenceIndex) Swap(x, y int) {
 	oi.Items[x], oi.Items[y] = oi.Items[y], oi.Items[x]
 }
 
-func (r *ReconcilePlacementRule) Recommend(instance *corev1alpha1.PlacementRule) bool {
+func (r *ReconcileAlphabetAdvisor) Recommend(instance *corev1alpha1.PlacementRule) bool {
 	invited := false
 
 	for _, adv := range instance.Spec.Advisors {

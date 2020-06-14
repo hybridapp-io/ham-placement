@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package alphabet
+package veto
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	rec := &ReconcileAlphabetAdvisor{
+	rec := &ReconcileVetoAdvisor{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 	}
@@ -55,7 +55,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("alphabet-advisor", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("veto-advisor", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -69,11 +69,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileAlphabetAdvisor implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileAlphabetAdvisor{}
+// blank assignment to verify that ReconcileVetoAdvisor implements reconcile.Reconciler
+var _ reconcile.Reconciler = &ReconcileVetoAdvisor{}
 
-// ReconcileAlphabetAdvisor reconciles a PlacementRule object
-type ReconcileAlphabetAdvisor struct {
+// ReconcileVetoAdvisor reconciles a PlacementRule object
+type ReconcileVetoAdvisor struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
@@ -85,8 +85,8 @@ type ReconcileAlphabetAdvisor struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileAlphabetAdvisor) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	klog.Info("Alphabet advising placementRule ", request.NamespacedName)
+func (r *ReconcileVetoAdvisor) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	klog.Info("Veto advising placementRule ", request.NamespacedName)
 
 	// Fetch the PlacementRule instance
 	instance := &corev1alpha1.PlacementRule{}

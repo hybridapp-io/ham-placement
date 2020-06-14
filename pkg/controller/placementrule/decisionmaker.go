@@ -48,14 +48,12 @@ func (d *DefaultDecisionMaker) ContinueDecisionMakingProcess(instance *corev1alp
 
 		for k := range cadmap {
 			if _, ok := recmap[k]; !ok {
-				delete(recmap, k)
+				delete(cadmap, k)
 			}
 		}
 	}
 
-	if instance.Spec.Replicas == nil || int(*instance.Spec.Replicas) <= len(cadmap) {
-		updated = d.compareAndSetDecisions(cadmap, instance)
-	}
+	updated = d.compareAndSetDecisions(cadmap, instance)
 
 	return updated
 }
