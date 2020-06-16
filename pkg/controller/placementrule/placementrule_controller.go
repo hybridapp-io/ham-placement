@@ -130,6 +130,10 @@ func (r *ReconcilePlacementRule) Reconcile(request reconcile.Request) (reconcile
 		updatestatus = true
 	}
 
+	if isAdvisorListUpdated(instance) {
+		updatestatus = true
+	}
+
 	updatedecisions := r.ContinueDecisionMakingProcess(instance)
 
 	if updatestatus || updatedecisions {
@@ -167,6 +171,25 @@ func (r *ReconcilePlacementRule) ContinueDecisionMakingProcess(instance *corev1a
 
 	if readytodecide {
 		update = r.decisionMaker.ContinueDecisionMakingProcess(instance)
+	}
+
+	return update
+}
+
+func isAdvisorListUpdated(instance *corev1alpha1.PlacementRule) bool {
+	update := false
+
+	advmap := make(map[string]bool)
+
+	for _, adv := range instance.Spec.Advisors {
+		advmap[adv.Name] = true
+	}
+
+	for k := range instance.Status.Recommendations {
+		if _, ok := advmap[k]; !ok {
+			delete(instance.Status.Recommendations, k)
+			update = true
+		}
 	}
 
 	return update
