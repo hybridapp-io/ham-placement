@@ -1,0 +1,18 @@
+apiVersion: core.hybridapp.io/v1alpha1
+kind: PlacementRule
+metadata:
+  name: veto-advisor
+spec:
+  replicas: 1
+  targetLabels:
+    matchLabels:
+      cloud: IBM
+  advisors:
+  - name: veto
+    weight: 50
+    rules:
+      resources:
+      - name: raleigh
+        namespace: raleigh
+      - name: toronto
+        namespace: toronto

@@ -1,0 +1,12 @@
+apiVersion: core.hybridapp.io/v1alpha1
+kind: PlacementRule
+metadata:
+  name: alphabet-advisor
+spec:
+  replicas: 1
+  targetLabels:
+    matchLabels:
+      cloud: IBM
+  advisors:
+  - name: alphabet    
+    weight: 50
