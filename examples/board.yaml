@@ -10,12 +10,11 @@ spec:
   advisors:
   - name: alphabet    
     weight: 50
-  advisors:
-    - name: veto
-      weight: 50
-      rules:
-        resources:
-        - name: raleigh
-          namespace: raleigh
-        - name: toronto
-          namespace: toronto
+  - name: veto
+    weight: 50
+    rules:
+      resources:
+      - name: raleigh
+        namespace: raleigh
+      - name: toronto
+        namespace: toronto
