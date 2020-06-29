@@ -4,17 +4,17 @@ metadata:
   name: board
 spec:
   replicas: 1
+  decisionWeight: 5
   targetLabels:
     matchLabels:
       cloud: IBM
   advisors:
   - name: alphabet    
-    weight: 50
+    weight: 60
   - name: veto
+    type: predicate
     weight: 50
     rules:
       resources:
       - name: raleigh
         namespace: raleigh
-      - name: toronto
-        namespace: toronto

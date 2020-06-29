@@ -12,23 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package apis
+package utils
 
-import (
-	dplyapis "github.com/hybridapp-io/ham-deployable-operator/pkg/apis"
-	"k8s.io/apimachinery/pkg/runtime"
-)
+import corev1 "k8s.io/api/core/v1"
 
-// AddToSchemes may be used to add all resources defined in the project to a Scheme
-var AddToSchemes runtime.SchemeBuilder
+func GenKey(or corev1.ObjectReference) string {
+	return string(or.UID)
+}
 
-// AddToScheme adds all Resources to the Scheme
-func AddToScheme(s *runtime.Scheme) error {
-
-	err := dplyapis.AddToScheme(s)
-	if err != nil {
-		return err
+func EqualCandidates(src, dst []corev1.ObjectReference) bool {
+	if len(src) == 0 && len(dst) == 0 {
+		return true
 	}
 
-	return AddToSchemes.AddToScheme(s)
+	if len(src) == 0 || len(dst) == 0 || len(src) != len(dst) {
+		return false
+	}
+
+	srcmap := make(map[string]bool)
+
+	for _, or := range src {
+		srcmap[GenKey(or)] = true
+	}
+
+	for _, or := range dst {
+		if _, ok := srcmap[GenKey(or)]; !ok {
+			return false
+		}
+	}
+
+	return true
 }

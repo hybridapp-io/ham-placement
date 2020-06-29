@@ -20,6 +20,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	advisorutils "github.com/hybridapp-io/ham-placement/pkg/advisor/utils"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
@@ -94,6 +95,10 @@ func (r *ReconcileAlphabetAdvisor) Recommend(instance *corev1alpha1.PlacementRul
 		}
 
 		rec[i] = *or
+	}
+
+	if advisorutils.EqualCandidates(instance.Status.Recommendations[advisorName], rec) {
+		return false
 	}
 
 	instance.Status.Recommendations[advisorName] = rec

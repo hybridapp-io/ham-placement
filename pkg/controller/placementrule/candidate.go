@@ -14,22 +14,60 @@
 package placementrule
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 
+	dplycorev1alpha1 "github.com/hybridapp-io/ham-deployable-operator/pkg/apis/core/v1alpha1"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
-var (
-	defaultResource = schema.GroupVersionResource{
-		Resource: "clusters",
-		Version:  "v1alpha1",
-		Group:    "clusterregistry.k8s.io",
+func convertMetaGVRToScheme(mgvr *metav1.GroupVersionResource) *schema.GroupVersionResource {
+	if mgvr == nil {
+		return nil
 	}
-)
+
+	return &schema.GroupVersionResource{
+		Group:    mgvr.Group,
+		Version:  mgvr.Version,
+		Resource: mgvr.Resource,
+	}
+}
+
+// check deployer by type everytime. could cache it.
+func (r *ReconcilePlacementRule) getTargetGVR(instance *corev1alpha1.PlacementRule) (*schema.GroupVersionResource, error) {
+	dplylist := &dplycorev1alpha1.DeployerList{}
+
+	// do not check the default deployertyp here in case user wants to override target for default deployer type
+	if instance.Spec.DeployerType == nil {
+		return convertMetaGVRToScheme(dplycorev1alpha1.DefaultKubernetesPlacementTarget), nil
+	}
+
+	dplytype := *instance.Spec.DeployerType
+
+	err := r.client.List(context.TODO(), dplylist)
+	if err != nil {
+		klog.Error("Failed to list deployers in system wit error: ", err)
+		return nil, err
+	}
+
+	for _, dply := range dplylist.Items {
+		if dply.Spec.Type == dplytype && dply.Spec.PlacementTarget != nil {
+			return convertMetaGVRToScheme(dply.Spec.PlacementTarget), nil
+		}
+	}
+
+	// no match, now its the time to check default deployer type
+	if dplytype == dplycorev1alpha1.DefaultDeployerType {
+		return convertMetaGVRToScheme(dplycorev1alpha1.DefaultKubernetesPlacementTarget), nil
+	}
+
+	return nil, nil
+}
 
 func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.PlacementRule) ([]corev1.ObjectReference, error) {
 	if instance == nil {
@@ -51,11 +89,19 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 		listopts.LabelSelector = selector.String()
 	}
 
-	tl, err := r.dynamicClient.Resource(defaultResource).List(listopts)
-	if err != nil {
-		klog.Error("Failed to list ", defaultResource.String(), " with error: ", err)
+	gvr, err := r.getTargetGVR(instance)
+	if gvr == nil {
+		klog.Error("Failed to get target GroupVersionResource for placement rule with error: ", err)
 		return nil, err
 	}
+
+	tl, err := r.dynamicClient.Resource(*gvr).List(listopts)
+	if err != nil {
+		klog.Error("Failed to list ", gvr.String(), " with error: ", err)
+		return nil, err
+	}
+
+	klog.V(5).Info("Getting candidates for gvr: ", gvr, " and got items: ", tl.Items)
 
 	// build candidate list, filter targets, nil = everything
 

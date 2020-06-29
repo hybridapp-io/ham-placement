@@ -23,9 +23,14 @@ import (
 type AdvisorType string
 
 const (
-	AdvisorTypeUnknown  AdvisorType = ""
-	AdvisorTypeFilter   AdvisorType = "predicate"
-	AdvisorTypePriority AdvisorType = "priority"
+	AdvisorTypeUnknown   AdvisorType = ""
+	AdvisorTypePredicate AdvisorType = "predicate"
+	AdvisorTypePriority  AdvisorType = "priority"
+)
+
+const (
+	DefaultAdvisorWeight  = 100
+	DefaultDecisionWeight = 10000
 )
 
 type Advisor struct {

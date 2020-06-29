@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 
+	advisorutils "github.com/hybridapp-io/ham-placement/pkg/advisor/utils"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
@@ -37,6 +38,38 @@ var (
 
 type vetoRules struct {
 	Resources []corev1.ObjectReference `json:"resources"`
+}
+
+func (r *ReconcileVetoAdvisor) doRecommend(candidates, bl []corev1.ObjectReference) []corev1.ObjectReference {
+	var rec []corev1.ObjectReference
+
+	for _, or := range candidates {
+		veto := false
+
+		for _, vetoor := range bl {
+			if vetoor.Name != "" && vetoor.Name != or.Name {
+				continue
+			}
+
+			if vetoor.Namespace != "" && vetoor.Namespace != or.Namespace {
+				continue
+			}
+
+			if vetoor.Name == "" && vetoor.Namespace == "" {
+				continue
+			}
+
+			veto = true
+
+			break
+		}
+
+		if !veto {
+			rec = append(rec, *or.DeepCopy())
+		}
+	}
+
+	return rec
 }
 
 func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule) bool {
@@ -64,7 +97,13 @@ func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule) b
 		instance.Status.Recommendations = make(map[string]corev1alpha1.Recommendation)
 	}
 
-	prevrec := instance.Status.Recommendations[advisorName]
+	if vetoadv.Rules == nil {
+		_, ok := instance.Status.Recommendations[advisorName]
+		if ok {
+			delete(instance.Status.Recommendations, advisorName)
+		}
+		return !ok
+	}
 
 	vetorules := &vetoRules{}
 
@@ -77,67 +116,17 @@ func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule) b
 		}
 	}
 
-	var rec []corev1.ObjectReference
-
-	for _, or := range instance.Status.Candidates {
-		veto := false
-
-		for _, vetoor := range vetorules.Resources {
-			if vetoor.Name != "" && vetoor.Name != or.Name {
-				continue
-			}
-
-			if vetoor.Namespace != "" && vetoor.Namespace != or.Namespace {
-				continue
-			}
-
-			if vetoor.Name == "" && vetoor.Namespace == "" {
-				continue
-			}
-
-			veto = true
-
-			break
-		}
-
-		if !veto {
-			rec = append(rec, *or.DeepCopy())
-		}
-	}
+	rec := r.doRecommend(instance.Status.Candidates, vetorules.Resources)
 
 	if len(rec) == 0 {
 		rec = append(rec, emptyRecommendatation)
 	}
 
-	update := !isEqualRecommendataion(rec, prevrec)
-
-	if update {
-		instance.Status.Recommendations[advisorName] = rec
-	}
-
-	return update
-}
-
-func isEqualRecommendataion(src, dst corev1alpha1.Recommendation) bool {
-	if src == nil && dst == nil {
-		return true
-	}
-
-	if src == nil || dst == nil {
+	if advisorutils.EqualCandidates(instance.Status.Recommendations[advisorName], rec) {
 		return false
 	}
 
-	srcmap := make(map[types.UID]bool)
+	instance.Status.Recommendations[advisorName] = rec
 
-	for _, or := range src {
-		srcmap[or.UID] = true
-	}
-
-	for _, or := range dst {
-		if _, ok := srcmap[or.UID]; !ok {
-			return false
-		}
-	}
-
-	return len(srcmap) == 0
+	return true
 }

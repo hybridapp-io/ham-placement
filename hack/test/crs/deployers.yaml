@@ -1,0 +1,7 @@
+apiVersion: core.hybridapp.io/v1alpha1
+kind: Deployer
+metadata:
+  name: k8s
+spec:
+  type: kubernetes
+  clusterScope: true
