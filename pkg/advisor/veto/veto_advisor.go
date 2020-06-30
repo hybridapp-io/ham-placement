@@ -15,11 +15,8 @@
 package veto
 
 import (
-	"strings"
-
 	"github.com/ghodss/yaml"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 
 	advisorutils "github.com/hybridapp-io/ham-placement/pkg/advisor/utils"
@@ -28,12 +25,6 @@ import (
 
 const (
 	advisorName = "veto"
-)
-
-var (
-	emptyRecommendatation = corev1.ObjectReference{
-		UID: types.UID(0),
-	}
 )
 
 type vetoRules struct {
@@ -72,61 +63,26 @@ func (r *ReconcileVetoAdvisor) doRecommend(candidates, bl []corev1.ObjectReferen
 	return rec
 }
 
-func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule) bool {
-	var err error
-
-	var vetoadv corev1alpha1.Advisor
-
-	invited := false
-
-	for _, adv := range instance.Spec.Advisors {
-		if strings.EqualFold(adv.Name, advisorName) {
-			adv.DeepCopyInto(&vetoadv)
-
-			invited = true
-
-			break
-		}
-	}
-
-	if !invited {
-		return false
-	}
-
-	if instance.Status.Recommendations == nil {
-		instance.Status.Recommendations = make(map[string]corev1alpha1.Recommendation)
-	}
-
-	if vetoadv.Rules == nil {
-		_, ok := instance.Status.Recommendations[advisorName]
-		if ok {
-			delete(instance.Status.Recommendations, advisorName)
-		}
-		return !ok
+func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule, vetoadv *corev1alpha1.Advisor) []corev1.ObjectReference {
+	if vetoadv.Rules == nil || (vetoadv.Rules.Object == nil && len(vetoadv.Rules.Raw) == 0) {
+		return instance.Status.Candidates
 	}
 
 	vetorules := &vetoRules{}
 
-	if len(vetoadv.Rules.Raw) == 0 {
-	} else {
-		err = yaml.Unmarshal(vetoadv.Rules.Raw, vetorules)
+	if len(vetoadv.Rules.Raw) != 0 {
+		err := yaml.Unmarshal(vetoadv.Rules.Raw, vetorules)
 		if err != nil {
 			klog.Error("Failed to parse veto objects ", err)
-			return false
+			return instance.Status.Candidates
 		}
 	}
 
 	rec := r.doRecommend(instance.Status.Candidates, vetorules.Resources)
 
 	if len(rec) == 0 {
-		rec = append(rec, emptyRecommendatation)
+		rec = advisorutils.EmptyRecommendatation
 	}
 
-	if advisorutils.EqualCandidates(instance.Status.Recommendations[advisorName], rec) {
-		return false
-	}
-
-	instance.Status.Recommendations[advisorName] = rec
-
-	return true
+	return rec
 }

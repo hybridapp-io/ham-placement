@@ -56,11 +56,12 @@ type Recommendation []corev1.ObjectReference
 
 // PlacementRuleStatus defines the observed state of PlacementRule
 type PlacementRuleStatus struct {
-	LastUpdateTime  *metav1.Time              `json:"lastUpdateTime,omitempty"`
-	Candidates      []corev1.ObjectReference  `json:"candidates,omitempty"`
-	Eliminators     []corev1.ObjectReference  `json:"eliminators,omitempty"`
-	Recommendations map[string]Recommendation `json:"recommendations,omitempty"` // key: advisor name
-	Decisions       []corev1.ObjectReference  `json:"decisions,omitempty"`
+	ObservedGeneration int64                     `json:"observedGeneration,omitempty"`
+	LastUpdateTime     *metav1.Time              `json:"lastUpdateTime,omitempty"`
+	Candidates         []corev1.ObjectReference  `json:"candidates,omitempty"`
+	Eliminators        []corev1.ObjectReference  `json:"eliminators,omitempty"`
+	Recommendations    map[string]Recommendation `json:"recommendations,omitempty"` // key: advisor name
+	Decisions          []corev1.ObjectReference  `json:"decisions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -68,6 +69,7 @@ type PlacementRuleStatus struct {
 // PlacementRule is the Schema for the placementrules API
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=placementrules,scope=Namespaced
+// +kubebuilder:resource:path=placementrules,shortName=hpr
 type PlacementRule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

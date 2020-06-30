@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	advisorutils "github.com/hybridapp-io/ham-placement/pkg/advisor/utils"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
@@ -86,8 +87,6 @@ type ReconcileVetoAdvisor struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileVetoAdvisor) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	klog.Info("Veto advising placementRule ", request.NamespacedName)
-
 	// Fetch the PlacementRule instance
 	instance := &corev1alpha1.PlacementRule{}
 
@@ -103,8 +102,21 @@ func (r *ReconcileVetoAdvisor) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
-	if r.Recommend(instance) {
+	advisor := advisorutils.GetAdvisor(instance, advisorName)
+	if advisor == nil || advisorutils.Recommended(instance, advisorName) {
+		return reconcile.Result{}, nil
+	}
+
+	rec := r.Recommend(instance, advisor)
+	klog.Info("Veto advising placementRule ", request.NamespacedName, " targets: ", rec)
+
+	if !advisorutils.IsSameRecommendataion(instance, advisorName, rec) {
+		advisorutils.MakeRecommendataion(instance, advisorName, rec)
 		err = r.client.Status().Update(context.TODO(), instance)
+	}
+
+	if err != nil {
+		klog.Error("Veto failed to provide recommendation, error: ", err)
 	}
 
 	return reconcile.Result{}, err

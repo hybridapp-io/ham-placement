@@ -16,10 +16,15 @@ package placementrule
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 
 	advisorutils "github.com/hybridapp-io/ham-placement/pkg/advisor/utils"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
+)
+
+const (
+	defaultStep = 1
 )
 
 type DecisionMaker interface {
@@ -39,7 +44,14 @@ func (d *DefaultDecisionMaker) ResetDecisionMakingProcess(candidates []corev1.Ob
 func (d *DefaultDecisionMaker) ContinueDecisionMakingProcess(instance *corev1alpha1.PlacementRule) bool {
 	decisions := d.filteByAdvisorType(instance.Status.Candidates, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePredicate)
 
-	klog.Info("Decision fileter: ", decisions)
+	if len(decisions) == 0 {
+		if len(instance.Status.Decisions) > 0 {
+			instance.Status.Decisions = nil
+			return true
+		}
+
+		return false
+	}
 
 	replicas := len(decisions)
 	if instance.Spec.Replicas != nil {
@@ -55,8 +67,6 @@ func (d *DefaultDecisionMaker) ContinueDecisionMakingProcess(instance *corev1alp
 		replicas = int(*instance.Spec.Replicas)
 	}
 
-	klog.Info("Decision prioritized: ", decisions)
-
 	if len(decisions) == replicas || len(instance.Status.Candidates) <= replicas {
 		return d.checkAndSetDecisions(decisions, instance)
 	}
@@ -70,14 +80,7 @@ func (d *DefaultDecisionMaker) ContinueDecisionMakingProcess(instance *corev1alp
 
 func (d *DefaultDecisionMaker) filteByAdvisorType(candidates []corev1.ObjectReference,
 	advisors []corev1alpha1.Advisor, recommendations map[string]corev1alpha1.Recommendation, advtype corev1alpha1.AdvisorType) []corev1.ObjectReference {
-	var decisions []corev1.ObjectReference
-
-	hasPredicates := false
-
-	cadmap := make(map[string]corev1.ObjectReference)
-	for _, or := range candidates {
-		cadmap[advisorutils.GenKey(or)] = or
-	}
+	decisions := candidates
 
 	for _, adv := range advisors {
 		if adv.Type == nil {
@@ -86,30 +89,28 @@ func (d *DefaultDecisionMaker) filteByAdvisorType(candidates []corev1.ObjectRefe
 		}
 
 		if *adv.Type == advtype {
-			hasPredicates = true
-			rec := recommendations[adv.Name]
-
-			if len(rec) == 0 {
-				return nil
+			recmap := make(map[types.UID]bool)
+			for _, or := range recommendations[adv.Name] {
+				recmap[or.UID] = true
 			}
 
-			for _, or := range rec {
-				if _, ok := cadmap[advisorutils.GenKey(or)]; ok {
-					decisions = append(decisions, *or.DeepCopy())
+			var newdecisions []corev1.ObjectReference
+
+			for _, or := range decisions {
+				if recmap[or.UID] {
+					newdecisions = append(newdecisions, *or.DeepCopy())
 				}
 			}
-		}
-	}
 
-	if !hasPredicates {
-		decisions = candidates
+			decisions = newdecisions
+		}
 	}
 
 	return decisions
 }
 
 func (d *DefaultDecisionMaker) checkAndSetDecisions(decisions []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) bool {
-	if advisorutils.EqualCandidates(decisions, instance.Status.Decisions) {
+	if advisorutils.EqualTargets(decisions, instance.Status.Decisions) {
 		return false
 	}
 
@@ -211,5 +212,5 @@ func (d *DefaultDecisionMaker) reduceCandidates(instance *corev1alpha1.Placement
 }
 
 func (d *DefaultDecisionMaker) calculateStep() int {
-	return 1
+	return defaultStep
 }

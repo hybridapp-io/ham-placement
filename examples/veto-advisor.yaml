@@ -9,10 +9,12 @@ spec:
       cloud: IBM
   advisors:
   - name: veto
-    weight: 50
+    type: predicate
     rules:
       resources:
       - name: raleigh
         namespace: raleigh
       - name: toronto
         namespace: toronto
+      - name: shanghai
+        namespace: shanghai

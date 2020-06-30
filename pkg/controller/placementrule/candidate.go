@@ -101,10 +101,7 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 		return nil, err
 	}
 
-	klog.V(5).Info("Getting candidates for gvr: ", gvr, " and got items: ", tl.Items)
-
 	// build candidate list, filter targets, nil = everything
-
 	for _, obj := range tl.Items {
 		or := corev1.ObjectReference{
 			Kind:       obj.GroupVersionKind().Kind,
