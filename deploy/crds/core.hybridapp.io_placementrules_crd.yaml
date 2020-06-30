@@ -8,6 +8,8 @@ spec:
     kind: PlacementRule
     listKind: PlacementRuleList
     plural: placementrules
+    shortNames:
+    - hpr
     singular: placementrule
   scope: Namespaced
   subresources:
@@ -263,6 +265,9 @@ spec:
             lastUpdateTime:
               format: date-time
               type: string
+            observedGeneration:
+              format: int64
+              type: integer
             recommendations:
               additionalProperties:
                 items:

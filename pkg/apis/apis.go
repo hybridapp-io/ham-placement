@@ -15,6 +15,7 @@
 package apis
 
 import (
+	dplyapis "github.com/hybridapp-io/ham-deployable-operator/pkg/apis"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -23,5 +24,11 @@ var AddToSchemes runtime.SchemeBuilder
 
 // AddToScheme adds all Resources to the Scheme
 func AddToScheme(s *runtime.Scheme) error {
+
+	err := dplyapis.AddToScheme(s)
+	if err != nil {
+		return err
+	}
+
 	return AddToSchemes.AddToScheme(s)
 }

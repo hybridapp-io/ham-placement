@@ -15,13 +15,11 @@
 package veto
 
 import (
-	"strings"
-
 	"github.com/ghodss/yaml"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 
+	advisorutils "github.com/hybridapp-io/ham-placement/pkg/advisor/utils"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
@@ -29,60 +27,17 @@ const (
 	advisorName = "veto"
 )
 
-var (
-	emptyRecommendatation = corev1.ObjectReference{
-		UID: types.UID(0),
-	}
-)
-
 type vetoRules struct {
 	Resources []corev1.ObjectReference `json:"resources"`
 }
 
-func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule) bool {
-	var err error
-
-	var vetoadv corev1alpha1.Advisor
-
-	invited := false
-
-	for _, adv := range instance.Spec.Advisors {
-		if strings.EqualFold(adv.Name, advisorName) {
-			adv.DeepCopyInto(&vetoadv)
-
-			invited = true
-
-			break
-		}
-	}
-
-	if !invited {
-		return false
-	}
-
-	if instance.Status.Recommendations == nil {
-		instance.Status.Recommendations = make(map[string]corev1alpha1.Recommendation)
-	}
-
-	prevrec := instance.Status.Recommendations[advisorName]
-
-	vetorules := &vetoRules{}
-
-	if len(vetoadv.Rules.Raw) == 0 {
-	} else {
-		err = yaml.Unmarshal(vetoadv.Rules.Raw, vetorules)
-		if err != nil {
-			klog.Error("Failed to parse veto objects ", err)
-			return false
-		}
-	}
-
+func (r *ReconcileVetoAdvisor) doRecommend(candidates, bl []corev1.ObjectReference) []corev1.ObjectReference {
 	var rec []corev1.ObjectReference
 
-	for _, or := range instance.Status.Candidates {
+	for _, or := range candidates {
 		veto := false
 
-		for _, vetoor := range vetorules.Resources {
+		for _, vetoor := range bl {
 			if vetoor.Name != "" && vetoor.Name != or.Name {
 				continue
 			}
@@ -105,39 +60,29 @@ func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule) b
 		}
 	}
 
-	if len(rec) == 0 {
-		rec = append(rec, emptyRecommendatation)
-	}
-
-	update := !isEqualRecommendataion(rec, prevrec)
-
-	if update {
-		instance.Status.Recommendations[advisorName] = rec
-	}
-
-	return update
+	return rec
 }
 
-func isEqualRecommendataion(src, dst corev1alpha1.Recommendation) bool {
-	if src == nil && dst == nil {
-		return true
+func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule, vetoadv *corev1alpha1.Advisor) []corev1.ObjectReference {
+	if vetoadv.Rules == nil || (vetoadv.Rules.Object == nil && len(vetoadv.Rules.Raw) == 0) {
+		return instance.Status.Candidates
 	}
 
-	if src == nil || dst == nil {
-		return false
-	}
+	vetorules := &vetoRules{}
 
-	srcmap := make(map[types.UID]bool)
-
-	for _, or := range src {
-		srcmap[or.UID] = true
-	}
-
-	for _, or := range dst {
-		if _, ok := srcmap[or.UID]; !ok {
-			return false
+	if len(vetoadv.Rules.Raw) != 0 {
+		err := yaml.Unmarshal(vetoadv.Rules.Raw, vetorules)
+		if err != nil {
+			klog.Error("Failed to parse veto objects ", err)
+			return instance.Status.Candidates
 		}
 	}
 
-	return len(srcmap) == 0
+	rec := r.doRecommend(instance.Status.Candidates, vetorules.Resources)
+
+	if len(rec) == 0 {
+		rec = advisorutils.EmptyRecommendatation
+	}
+
+	return rec
 }

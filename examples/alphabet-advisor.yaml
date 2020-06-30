@@ -3,6 +3,7 @@ kind: PlacementRule
 metadata:
   name: alphabet-advisor
 spec:
+  deployerType: kubernetes
   replicas: 1
   targetLabels:
     matchLabels:

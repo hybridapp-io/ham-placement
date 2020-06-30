@@ -122,28 +122,18 @@ func (r *ReconcilePlacementRule) Reconcile(request reconcile.Request) (reconcile
 		klog.Error("Failed to generate candidates for decision with error: ", err)
 	}
 
-	updatestatus := false
-	// Step 2: compare new candidates with existing cadidates + eliminators
-	if !isSameCandidateList(ncans, instance) {
-		r.ResetDecisionMakingProcess(ncans, instance)
+	// if spec has been changed, reset it
+	if instance.Status.ObservedGeneration != instance.GetGeneration() || !isSameCandidateList(ncans, instance) {
+		err = r.resetDecisionMakingProcess(ncans, instance)
 
-		updatestatus = true
+		return reconcile.Result{}, err
 	}
 
-	if isAdvisorListUpdated(instance) {
-		updatestatus = true
-	}
-
-	updatedecisions := r.ContinueDecisionMakingProcess(instance)
-
-	if updatestatus || updatedecisions {
-		err = r.client.Status().Update(context.TODO(), instance)
-	}
-
-	return reconcile.Result{}, err
+	return reconcile.Result{}, r.continueDecisionMakingProcess(instance)
 }
 
-func (r *ReconcilePlacementRule) ResetDecisionMakingProcess(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) {
+func (r *ReconcilePlacementRule) resetDecisionMakingProcess(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) error {
+	instance.Status.ObservedGeneration = instance.GetGeneration()
 	now := metav1.Now()
 	instance.Status.LastUpdateTime = &now
 	instance.Status.Candidates = candidates
@@ -151,11 +141,12 @@ func (r *ReconcilePlacementRule) ResetDecisionMakingProcess(candidates []corev1.
 	instance.Status.Eliminators = nil
 
 	r.decisionMaker.ResetDecisionMakingProcess(candidates, instance)
+
+	return r.client.Status().Update(context.TODO(), instance)
 }
 
-func (r *ReconcilePlacementRule) ContinueDecisionMakingProcess(instance *corev1alpha1.PlacementRule) bool {
+func (r *ReconcilePlacementRule) continueDecisionMakingProcess(instance *corev1alpha1.PlacementRule) error {
 	readytodecide := true
-	update := false
 
 	for _, adv := range instance.Spec.Advisors {
 		if instance.Status.Recommendations == nil {
@@ -169,28 +160,9 @@ func (r *ReconcilePlacementRule) ContinueDecisionMakingProcess(instance *corev1a
 		}
 	}
 
-	if readytodecide {
-		update = r.decisionMaker.ContinueDecisionMakingProcess(instance)
+	if readytodecide && r.decisionMaker.ContinueDecisionMakingProcess(instance) {
+		return r.client.Status().Update(context.TODO(), instance)
 	}
 
-	return update
-}
-
-func isAdvisorListUpdated(instance *corev1alpha1.PlacementRule) bool {
-	update := false
-
-	advmap := make(map[string]bool)
-
-	for _, adv := range instance.Spec.Advisors {
-		advmap[adv.Name] = true
-	}
-
-	for k := range instance.Status.Recommendations {
-		if _, ok := advmap[k]; !ok {
-			delete(instance.Status.Recommendations, k)
-			update = true
-		}
-	}
-
-	return update
+	return nil
 }

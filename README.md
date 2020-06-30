@@ -101,13 +101,16 @@ Register cluster CRD and clusters
 % kubectl apply -f hack/test/cluster-registry-crd.yaml
 customresourcedefinition.apiextensions.k8s.io/clusters.clusterregistry.k8s.io created
 % kubectl apply -f hack/test/crs/clusters.yaml
-namespace/raleigh unchanged
+namespace/raleigh created
 cluster.clusterregistry.k8s.io/raleigh created
-namespace/toronto unchanged
+namespace/toronto created
 cluster.clusterregistry.k8s.io/toronto created
+namespace/shanghai created
+cluster.clusterregistry.k8s.io/shanghai created
 % kubectl get clusters --all-namespaces --show-labels
 NAMESPACE   NAME      AGE   LABELS
 raleigh     raleigh   38s   cloud=IBM,datacenter=raleigh,environment=Dev,name=raleigh,owner=marketing,region=US,vendor=ICP
+shanghai    shanghai  38s   cloud=IBM,datacenter=shanghai,environment=Dev,name=shanghai,owner=dev,region=China,vendor=ICP
 toronto     toronto   38s   cloud=IBM,datacenter=toronto,environment=Dev,name=toronto,owner=marketing,region=US,vendor=ICP
 ```
 
@@ -129,49 +132,15 @@ Kind:         PlacementRule
 Spec:
   Advisors:
     Name:    alphabet
-    Weight:  50
+    Weight:  60
     Name:    veto
     Rules:
       Resources:
         Name:       raleigh
         Namespace:  raleigh
-        Name:       toronto
-        Namespace:  toronto
+    Type:           predicate
     Weight:         50
-  Replicas:         1
-  Target Labels:
-    Match Labels:
-      Cloud:  IBM
-Status:
-  Last Update Time:  2020-06-16T02:21:55Z
-  Recommendations:
-    Veto:
-      UID:
-Events:     <none>
-```
-
-2 advisors are built-in with placementrule operator: alphabet and veto.
-
-Update the advisors to influence decisions.
-
-```shell
-$ kubectl edit placementrule
-placementrule.core.hybridapp.io/board edited
-
- % kubectl describe placementrule
-Name:         board
-Namespace:    default
-API Version:  core.hybridapp.io/v1alpha1
-Kind:         PlacementRule
-...
-Spec:
-  Advisors:
-    Name:  veto
-    Rules:
-      Resources:
-        Name:       raleigh
-        Namespace:  raleigh
-    Weight:         50
+  Decision Weight:  5
   Replicas:         1
   Target Labels:
     Match Labels:
@@ -180,30 +149,50 @@ Status:
   Candidates:
     API Version:  clusterregistry.k8s.io/v1alpha1
     Kind:         Cluster
-    Name:         raleigh
-    Namespace:    raleigh
-    UID:          54577532-d293-44de-b3b5-bfa8ffbaf9a9
+    Name:         shanghai
+    Namespace:    shanghai
+    UID:          66c83e70-4184-4eed-b593-09abb4e5d7a3
     API Version:  clusterregistry.k8s.io/v1alpha1
     Kind:         Cluster
     Name:         toronto
     Namespace:    toronto
     UID:          f43e6fbe-8b32-4ee6-986c-f87fdbc83f51
   Decisions:
-    API Version:     clusterregistry.k8s.io/v1alpha1
-    Kind:            Cluster
-    Name:            toronto
-    Namespace:       toronto
-    UID:             f43e6fbe-8b32-4ee6-986c-f87fdbc83f51
-  Last Update Time:  2020-06-16T02:33:16Z
+    API Version:  clusterregistry.k8s.io/v1alpha1
+    Kind:         Cluster
+    Name:         shanghai
+    Namespace:    shanghai
+    UID:          66c83e70-4184-4eed-b593-09abb4e5d7a3
+  Eliminators:
+    API Version:        clusterregistry.k8s.io/v1alpha1
+    Kind:               Cluster
+    Name:               raleigh
+    Namespace:          raleigh
+    UID:                54577532-d293-44de-b3b5-bfa8ffbaf9a9
+  Last Update Time:     2020-06-30T02:36:28Z
+  Observed Generation:  1
   Recommendations:
+    Alphabet:
+      API Version:  clusterregistry.k8s.io/v1alpha1
+      Kind:         Cluster
+      Name:         shanghai
+      Namespace:    shanghai
+      UID:          66c83e70-4184-4eed-b593-09abb4e5d7a3
     Veto:
+      API Version:  clusterregistry.k8s.io/v1alpha1
+      Kind:         Cluster
+      Name:         shanghai
+      Namespace:    shanghai
+      UID:          66c83e70-4184-4eed-b593-09abb4e5d7a3
       API Version:  clusterregistry.k8s.io/v1alpha1
       Kind:         Cluster
       Name:         toronto
       Namespace:    toronto
       UID:          f43e6fbe-8b32-4ee6-986c-f87fdbc83f51
-Events:             <none>
+Events:     <none>
 ```
+
+2 advisors are built-in with placementrule operator: alphabet and veto.
 
 #### Uninstall Deployable Operator
 

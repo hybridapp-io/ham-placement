@@ -17,8 +17,14 @@ package placementrule
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 
+	advisorutils "github.com/hybridapp-io/ham-placement/pkg/advisor/utils"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
+)
+
+const (
+	defaultStep = 1
 )
 
 type DecisionMaker interface {
@@ -30,75 +36,181 @@ type DefaultDecisionMaker struct {
 }
 
 func (d *DefaultDecisionMaker) ResetDecisionMakingProcess(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) {
+	instance.Status.Candidates = candidates
+	instance.Status.Eliminators = nil
+	instance.Status.Recommendations = nil
 }
 
 func (d *DefaultDecisionMaker) ContinueDecisionMakingProcess(instance *corev1alpha1.PlacementRule) bool {
-	updated := false
+	decisions := d.filteByAdvisorType(instance.Status.Candidates, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePredicate)
 
-	cadmap := make(map[types.UID]*corev1.ObjectReference)
-	for _, or := range instance.Status.Candidates {
-		cadmap[or.UID] = or.DeepCopy()
-	}
-
-	for _, rec := range instance.Status.Recommendations {
-		recmap := make(map[types.UID]bool)
-		for _, ror := range rec {
-			recmap[ror.UID] = true
+	if len(decisions) == 0 {
+		if len(instance.Status.Decisions) > 0 {
+			instance.Status.Decisions = nil
+			return true
 		}
 
-		for k := range cadmap {
-			if _, ok := recmap[k]; !ok {
-				delete(cadmap, k)
-			}
-		}
+		return false
 	}
 
-	updated = d.compareAndSetDecisions(cadmap, instance)
+	replicas := len(decisions)
+	if instance.Spec.Replicas != nil {
+		replicas = int(*instance.Spec.Replicas)
+	}
+	// if valid decision candidates less than target, ignore priority advisors
+	if len(decisions) > replicas {
+		decisions = d.filteByAdvisorType(decisions, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePriority)
+	}
 
-	return updated
-}
-
-func (d *DefaultDecisionMaker) compareAndSetDecisions(decmap map[types.UID]*corev1.ObjectReference, instance *corev1alpha1.PlacementRule) bool {
-	var decisions []corev1.ObjectReference
-
-	updated := false
-
-	replicas := len(decmap)
-
+	replicas = len(decisions)
 	if instance.Spec.Replicas != nil {
 		replicas = int(*instance.Spec.Replicas)
 	}
 
-	for _, dec := range instance.Status.Decisions {
-		var or *corev1.ObjectReference
-
-		var ok bool
-
-		if or, ok = decmap[dec.UID]; !ok {
-			updated = true
-			break
-		}
-
-		if len(decisions) == replicas {
-			updated = true
-			break
-		}
-
-		decisions = append(decisions, *or)
+	if len(decisions) == replicas || len(instance.Status.Candidates) <= replicas {
+		return d.checkAndSetDecisions(decisions, instance)
 	}
 
-	for _, nor := range decmap {
-		if len(decisions) == replicas {
-			break
+	d.reduceCandidates(instance)
+
+	klog.Info("New Status: ", instance.Status)
+
+	return true
+}
+
+func (d *DefaultDecisionMaker) filteByAdvisorType(candidates []corev1.ObjectReference,
+	advisors []corev1alpha1.Advisor, recommendations map[string]corev1alpha1.Recommendation, advtype corev1alpha1.AdvisorType) []corev1.ObjectReference {
+	decisions := candidates
+
+	for _, adv := range advisors {
+		if adv.Type == nil {
+			t := corev1alpha1.AdvisorTypePriority
+			adv.Type = &t
 		}
 
-		decisions = append(decisions, *nor)
-		updated = true
+		if *adv.Type == advtype {
+			recmap := make(map[types.UID]bool)
+			for _, or := range recommendations[adv.Name] {
+				recmap[or.UID] = true
+			}
+
+			var newdecisions []corev1.ObjectReference
+
+			for _, or := range decisions {
+				if recmap[or.UID] {
+					newdecisions = append(newdecisions, *or.DeepCopy())
+				}
+			}
+
+			decisions = newdecisions
+		}
 	}
 
-	if updated {
-		instance.Status.Decisions = decisions
+	return decisions
+}
+
+func (d *DefaultDecisionMaker) checkAndSetDecisions(decisions []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) bool {
+	if advisorutils.EqualTargets(decisions, instance.Status.Decisions) {
+		return false
 	}
 
-	return updated
+	instance.Status.Decisions = decisions
+
+	return true
+}
+
+func (d *DefaultDecisionMaker) reduceCandidates(instance *corev1alpha1.PlacementRule) {
+	// reduce by predicates first
+	candidates := d.filteByAdvisorType(instance.Status.Candidates, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePredicate)
+	cadweightmap := make(map[string]int)
+
+	for _, or := range candidates {
+		cadweightmap[advisorutils.GenKey(or)] = 0
+	}
+
+	for _, or := range instance.Status.Candidates {
+		if _, ok := cadweightmap[advisorutils.GenKey(or)]; !ok {
+			instance.Status.Eliminators = append(instance.Status.Eliminators, *or.DeepCopy())
+		}
+	}
+
+	if len(candidates) < len(instance.Status.Candidates) {
+		instance.Status.Candidates = candidates
+		instance.Status.Recommendations = nil
+
+		return
+	}
+
+	// calculate weight of all candidates
+	for _, adv := range instance.Spec.Advisors {
+		if adv.Type == nil {
+			t := corev1alpha1.AdvisorTypePriority
+			adv.Type = &t
+		}
+
+		if *adv.Type == corev1alpha1.AdvisorTypePriority {
+			rec := instance.Status.Recommendations[adv.Name]
+			if len(rec) == 0 {
+				return
+			}
+
+			weight := corev1alpha1.DefaultAdvisorWeight
+			if adv.Weight != nil {
+				weight = int(*adv.Weight)
+			}
+
+			for _, or := range rec {
+				if _, ok := cadweightmap[advisorutils.GenKey(or)]; ok {
+					cadweightmap[advisorutils.GenKey(or)] += weight
+				}
+			}
+		}
+	}
+
+	weight := corev1alpha1.DefaultDecisionWeight
+	if instance.Spec.DecisionWeight != nil {
+		weight = int(*instance.Spec.DecisionWeight)
+	}
+
+	for _, or := range instance.Status.Decisions {
+		if _, ok := cadweightmap[advisorutils.GenKey(or)]; ok {
+			cadweightmap[advisorutils.GenKey(or)] += weight
+		}
+	}
+
+	// reduce lowest n candidates
+	elmap := make(map[string]corev1.ObjectReference)
+	step := d.calculateStep()
+
+	var newcandidates []corev1.ObjectReference
+
+	for _, or := range instance.Status.Candidates {
+		c := *or.DeepCopy()
+
+		if len(elmap) < step {
+			elmap[advisorutils.GenKey(c)] = c
+			continue
+		}
+
+		for k, el := range elmap {
+			if cadweightmap[advisorutils.GenKey(el)] > cadweightmap[advisorutils.GenKey(c)] {
+				delete(elmap, k)
+				elmap[advisorutils.GenKey(c)] = c
+				c = el
+			}
+		}
+
+		newcandidates = append(newcandidates, c)
+	}
+
+	instance.Status.Candidates = newcandidates
+	instance.Status.Recommendations = nil
+
+	for _, or := range elmap {
+		instance.Status.Eliminators = append(instance.Status.Eliminators, *or.DeepCopy())
+	}
+}
+
+func (d *DefaultDecisionMaker) calculateStep() int {
+	return defaultStep
 }

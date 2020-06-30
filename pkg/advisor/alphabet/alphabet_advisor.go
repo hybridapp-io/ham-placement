@@ -23,10 +23,6 @@ import (
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
-const (
-	advisorName = "alphabet"
-)
-
 type objectReferenceIndex struct {
 	Items []*corev1.ObjectReference
 }
@@ -49,28 +45,7 @@ func (oi objectReferenceIndex) Swap(x, y int) {
 	oi.Items[x], oi.Items[y] = oi.Items[y], oi.Items[x]
 }
 
-func (r *ReconcileAlphabetAdvisor) Recommend(instance *corev1alpha1.PlacementRule) bool {
-	invited := false
-
-	for _, adv := range instance.Spec.Advisors {
-		if strings.EqualFold(adv.Name, advisorName) {
-			invited = true
-			break
-		}
-	}
-
-	if !invited {
-		return false
-	}
-
-	if instance.Status.Recommendations == nil {
-		instance.Status.Recommendations = make(map[string]corev1alpha1.Recommendation)
-	}
-
-	if _, ok := instance.Status.Recommendations[advisorName]; ok {
-		return false
-	}
-
+func (r *ReconcileAlphabetAdvisor) Recommend(instance *corev1alpha1.PlacementRule) []corev1.ObjectReference {
 	ori := objectReferenceIndex{}
 
 	for _, or := range instance.Status.Candidates {
@@ -96,7 +71,5 @@ func (r *ReconcileAlphabetAdvisor) Recommend(instance *corev1alpha1.PlacementRul
 		rec[i] = *or
 	}
 
-	instance.Status.Recommendations[advisorName] = rec
-
-	return true
+	return rec
 }

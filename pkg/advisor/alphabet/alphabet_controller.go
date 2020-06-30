@@ -28,16 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	advisorutils "github.com/hybridapp-io/ham-placement/pkg/advisor/utils"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
+const (
+	advisorName = "alphabet"
+)
 
-// Add creates a new PlacementRule Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
@@ -86,8 +84,6 @@ type ReconcileAlphabetAdvisor struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileAlphabetAdvisor) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	klog.Info("Alphabet advising placementRule ", request.NamespacedName)
-
 	// Fetch the PlacementRule instance
 	instance := &corev1alpha1.PlacementRule{}
 
@@ -103,8 +99,22 @@ func (r *ReconcileAlphabetAdvisor) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	if r.Recommend(instance) {
+	advisor := advisorutils.GetAdvisor(instance, advisorName)
+	if advisor == nil || advisorutils.Recommended(instance, advisorName) {
+		return reconcile.Result{}, nil
+	}
+
+	klog.Info("Alphabet advising placementRule ", request.NamespacedName)
+
+	rec := r.Recommend(instance)
+
+	if !advisorutils.IsSameRecommendataion(instance, advisorName, rec) {
+		advisorutils.MakeRecommendataion(instance, advisorName, rec)
 		err = r.client.Status().Update(context.TODO(), instance)
+	}
+
+	if err != nil {
+		klog.Error("Alphabet failed to provide recommendation, error: ", err)
 	}
 
 	return reconcile.Result{}, err
