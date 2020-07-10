@@ -1,0 +1,10 @@
+apiVersion: core.hybridapp.io/v1alpha1
+kind: PlacementRule
+metadata:
+  name: kvvms
+spec:
+  deployerType: kubevirt
+  replicas: 1
+  advisors:
+  - name: alphabet    
+    weight: 50

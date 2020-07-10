@@ -1,0 +1,17 @@
+apiVersion: kubevirt.io/v1alpha2
+kind: VirtualMachine
+metadata:
+  name: dev
+  namespace: raleigh
+---
+apiVersion: kubevirt.io/v1alpha2
+kind: VirtualMachine
+metadata:
+  name: test
+  namespace: shanghai
+---
+apiVersion: kubevirt.io/v1alpha2
+kind: VirtualMachine
+metadata:
+  name: production
+  namespace: toronto
