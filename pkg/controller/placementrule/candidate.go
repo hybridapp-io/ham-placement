@@ -95,7 +95,7 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 		return nil, err
 	}
 
-	tl, err := r.dynamicClient.Resource(*gvr).List(listopts)
+	tl, err := r.dynamicClient.Resource(*gvr).List(context.TODO(), listopts)
 	if err != nil {
 		klog.Error("Failed to list ", gvr.String(), " with error: ", err)
 		return nil, err
