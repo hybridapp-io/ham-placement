@@ -59,10 +59,9 @@ func (r *ReconcilePlacementRule) getTargetGVR(instance *corev1alpha1.PlacementRu
 		if dply.Spec.Type == dplytype {
 			if dply.Spec.PlacementTarget != nil {
 				return convertMetaGVRToScheme(dply.Spec.PlacementTarget), nil
-			} else {
-				// default to deployer type
-				return convertMetaGVRToScheme(dplycorev1alpha1.DeployerPlacementTarget), nil
 			}
+			// default to deployer type
+			return convertMetaGVRToScheme(dplycorev1alpha1.DeployerPlacementTarget), nil
 		}
 	}
 
