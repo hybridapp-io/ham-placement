@@ -42,7 +42,7 @@ func (d *DefaultDecisionMaker) ResetDecisionMakingProcess(candidates []corev1.Ob
 }
 
 func (d *DefaultDecisionMaker) ContinueDecisionMakingProcess(instance *corev1alpha1.PlacementRule) bool {
-	decisions := d.filteByAdvisorType(instance.Status.Candidates, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePredicate)
+	decisions := d.filterByAdvisorType(instance.Status.Candidates, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePredicate)
 
 	if len(decisions) == 0 {
 		if len(instance.Status.Decisions) > 0 {
@@ -59,7 +59,7 @@ func (d *DefaultDecisionMaker) ContinueDecisionMakingProcess(instance *corev1alp
 	}
 	// if valid decision candidates less than target, ignore priority advisors
 	if len(decisions) > replicas {
-		decisions = d.filteByAdvisorType(decisions, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePriority)
+		decisions = d.filterByAdvisorType(decisions, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePriority)
 	}
 
 	replicas = len(decisions)
@@ -78,7 +78,7 @@ func (d *DefaultDecisionMaker) ContinueDecisionMakingProcess(instance *corev1alp
 	return true
 }
 
-func (d *DefaultDecisionMaker) filteByAdvisorType(candidates []corev1.ObjectReference,
+func (d *DefaultDecisionMaker) filterByAdvisorType(candidates []corev1.ObjectReference,
 	advisors []corev1alpha1.Advisor, recommendations map[string]corev1alpha1.Recommendation, advtype corev1alpha1.AdvisorType) []corev1.ObjectReference {
 	decisions := candidates
 
@@ -121,7 +121,7 @@ func (d *DefaultDecisionMaker) checkAndSetDecisions(decisions []corev1.ObjectRef
 
 func (d *DefaultDecisionMaker) reduceCandidates(instance *corev1alpha1.PlacementRule) {
 	// reduce by predicates first
-	candidates := d.filteByAdvisorType(instance.Status.Candidates, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePredicate)
+	candidates := d.filterByAdvisorType(instance.Status.Candidates, instance.Spec.Advisors, instance.Status.Recommendations, corev1alpha1.AdvisorTypePredicate)
 	cadweightmap := make(map[string]int)
 
 	for _, or := range candidates {
