@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
-	github.com/hybridapp-io/ham-deployable-operator v0.0.0-20200811182702-b08c0b1908b9
+	github.com/hybridapp-io/ham-deployable-operator v0.0.0-20200928170413-20ace11884c8
 	github.com/onsi/gomega v1.9.0
 	github.com/operator-framework/operator-sdk v0.18.0
 	github.com/spf13/pflag v1.0.5
