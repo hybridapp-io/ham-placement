@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 
-	dplycorev1alpha1 "github.com/hybridapp-io/ham-deployable-operator/pkg/apis/core/v1alpha1"
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
 )
 
@@ -40,18 +39,18 @@ func convertMetaGVRToScheme(mgvr *metav1.GroupVersionResource) *schema.GroupVers
 
 // check deployer by type everytime. could cache it.
 func (r *ReconcilePlacementRule) getTargetGVR(instance *corev1alpha1.PlacementRule) (*schema.GroupVersionResource, error) {
-	dplylist := &dplycorev1alpha1.DeployerList{}
+	dplylist := &corev1alpha1.DeployerList{}
 
 	// do not check the default deployertyp here in case user wants to override target for default deployer type
 	if instance.Spec.DeployerType == nil {
-		return convertMetaGVRToScheme(dplycorev1alpha1.DefaultKubernetesPlacementTarget), nil
+		return convertMetaGVRToScheme(corev1alpha1.DefaultKubernetesPlacementTarget), nil
 	}
 
 	dplytype := *instance.Spec.DeployerType
 
 	err := r.client.List(context.TODO(), dplylist)
 	if err != nil {
-		klog.Error("Failed to list deployers in system wit error: ", err)
+		klog.Error("Failed to list deployers in system with error: ", err)
 		return nil, err
 	}
 
@@ -61,13 +60,13 @@ func (r *ReconcilePlacementRule) getTargetGVR(instance *corev1alpha1.PlacementRu
 				return convertMetaGVRToScheme(dply.Spec.PlacementTarget), nil
 			}
 			// default to deployer type
-			return convertMetaGVRToScheme(dplycorev1alpha1.DeployerPlacementTarget), nil
+			return convertMetaGVRToScheme(corev1alpha1.DeployerPlacementTarget), nil
 		}
 	}
 
 	// no match, now its the time to check default deployer type
-	if dplytype == dplycorev1alpha1.DefaultDeployerType {
-		return convertMetaGVRToScheme(dplycorev1alpha1.DefaultKubernetesPlacementTarget), nil
+	if dplytype == corev1alpha1.DefaultDeployerType {
+		return convertMetaGVRToScheme(corev1alpha1.DefaultKubernetesPlacementTarget), nil
 	}
 
 	return nil, nil
