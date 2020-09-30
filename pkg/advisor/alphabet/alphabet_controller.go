@@ -108,8 +108,8 @@ func (r *ReconcileAlphabetAdvisor) Reconcile(request reconcile.Request) (reconci
 
 	rec := r.Recommend(instance)
 
-	if !advisorutils.IsSameRecommendataion(instance, advisorName, rec) {
-		advisorutils.MakeRecommendataion(instance, advisorName, rec)
+	if !advisorutils.IsSameRecommendation(instance, advisorName, rec) {
+		advisorutils.MakeRecommendation(instance, advisorName, rec)
 		err = r.client.Status().Update(context.TODO(), instance)
 	}
 

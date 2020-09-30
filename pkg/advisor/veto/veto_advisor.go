@@ -27,6 +27,8 @@ const (
 	advisorName = "veto"
 )
 
+var defaultScore = int16(corev1alpha1.DefaultScore)
+
 type vetoRules struct {
 	Resources []corev1.ObjectReference `json:"resources"`
 }
@@ -63,9 +65,9 @@ func (r *ReconcileVetoAdvisor) doRecommend(candidates, bl []corev1.ObjectReferen
 	return rec
 }
 
-func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule, vetoadv *corev1alpha1.Advisor) []corev1.ObjectReference {
+func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule, vetoadv *corev1alpha1.Advisor) []corev1alpha1.ScoredObjectReference {
 	if vetoadv.Rules == nil || (vetoadv.Rules.Object == nil && len(vetoadv.Rules.Raw) == 0) {
-		return instance.Status.Candidates
+		return r.getScoredObjectReferences(instance.Status.Candidates)
 	}
 
 	vetorules := &vetoRules{}
@@ -74,7 +76,7 @@ func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule, v
 		err := yaml.Unmarshal(vetoadv.Rules.Raw, vetorules)
 		if err != nil {
 			klog.Error("Failed to parse veto objects ", err)
-			return instance.Status.Candidates
+			return r.getScoredObjectReferences(instance.Status.Candidates)
 		}
 	}
 
@@ -84,5 +86,17 @@ func (r *ReconcileVetoAdvisor) Recommend(instance *corev1alpha1.PlacementRule, v
 		rec = advisorutils.EmptyRecommendatation
 	}
 
+	return r.getScoredObjectReferences(rec)
+}
+
+func (r *ReconcileVetoAdvisor) getScoredObjectReferences(references []corev1.ObjectReference) []corev1alpha1.ScoredObjectReference {
+	rec := make([]corev1alpha1.ScoredObjectReference, len(references))
+	for i, or := range references {
+
+		rec[i] = corev1alpha1.ScoredObjectReference{
+			ObjectReference: or,
+			Score:           &defaultScore,
+		}
+	}
 	return rec
 }
