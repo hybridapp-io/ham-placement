@@ -31,6 +31,7 @@ const (
 const (
 	DefaultAdvisorWeight  = 100
 	DefaultDecisionWeight = 10000
+	DefaultScore          = 100
 )
 
 type Advisor struct {
@@ -52,7 +53,13 @@ type PlacementRuleSpec struct {
 	Advisors       []Advisor                `json:"advisors,omitempty"`
 }
 
-type Recommendation []corev1.ObjectReference
+type ScoredObjectReference struct {
+	corev1.ObjectReference `json:",inline"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	Score *int16 `json:"score,omitempty"` // default is 100
+}
+type Recommendation []ScoredObjectReference
 
 // PlacementRuleStatus defines the observed state of PlacementRule
 type PlacementRuleStatus struct {

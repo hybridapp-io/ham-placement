@@ -110,8 +110,8 @@ func (r *ReconcileVetoAdvisor) Reconcile(request reconcile.Request) (reconcile.R
 	rec := r.Recommend(instance, advisor)
 	klog.Info("Veto advising placementRule ", request.NamespacedName, " targets: ", rec)
 
-	if !advisorutils.IsSameRecommendataion(instance, advisorName, rec) {
-		advisorutils.MakeRecommendataion(instance, advisorName, rec)
+	if !advisorutils.IsSameRecommendation(instance, advisorName, rec) {
+		advisorutils.MakeRecommendation(instance, advisorName, rec)
 		err = r.client.Status().Update(context.TODO(), instance)
 	}
 

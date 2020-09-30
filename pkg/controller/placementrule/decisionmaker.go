@@ -110,7 +110,7 @@ func (d *DefaultDecisionMaker) filterByAdvisorType(candidates []corev1.ObjectRef
 }
 
 func (d *DefaultDecisionMaker) checkAndSetDecisions(decisions []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) bool {
-	if advisorutils.EqualTargets(decisions, instance.Status.Decisions) {
+	if advisorutils.EqualDecisions(decisions, instance.Status.Decisions) {
 		return false
 	}
 
@@ -160,8 +160,9 @@ func (d *DefaultDecisionMaker) reduceCandidates(instance *corev1alpha1.Placement
 			}
 
 			for _, or := range rec {
-				if _, ok := cadweightmap[advisorutils.GenKey(or)]; ok {
-					cadweightmap[advisorutils.GenKey(or)] += weight
+				if _, ok := cadweightmap[advisorutils.GenKey(or.ObjectReference)]; ok {
+					newweight := int16(weight) + *or.Score
+					cadweightmap[advisorutils.GenKey(or.ObjectReference)] += int(newweight)
 				}
 			}
 		}

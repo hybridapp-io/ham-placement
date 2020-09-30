@@ -36,7 +36,7 @@ func GenKey(or corev1.ObjectReference) string {
 	return string(or.UID)
 }
 
-func MakeRecommendataion(instance *corev1alpha1.PlacementRule, advisorName string, rec []corev1.ObjectReference) {
+func MakeRecommendation(instance *corev1alpha1.PlacementRule, advisorName string, rec []corev1alpha1.ScoredObjectReference) {
 	if instance.Status.Recommendations == nil {
 		instance.Status.Recommendations = make(map[string]corev1alpha1.Recommendation)
 	}
@@ -44,15 +44,38 @@ func MakeRecommendataion(instance *corev1alpha1.PlacementRule, advisorName strin
 	instance.Status.Recommendations[advisorName] = rec
 }
 
-func IsSameRecommendataion(instance *corev1alpha1.PlacementRule, advisorName string, rec []corev1.ObjectReference) bool {
+func IsSameRecommendation(instance *corev1alpha1.PlacementRule, advisorName string, rec []corev1alpha1.ScoredObjectReference) bool {
 	if instance.Status.Recommendations == nil && len(rec) == 0 {
 		return true
 	}
 
-	return EqualTargets(instance.Status.Recommendations[advisorName], rec)
+	return EqualRecommendations(instance.Status.Recommendations[advisorName], rec)
 }
 
-func EqualTargets(src, dst []corev1.ObjectReference) bool {
+func EqualRecommendations(src, dst []corev1alpha1.ScoredObjectReference) bool {
+	if len(src) == 0 && len(dst) == 0 {
+		return true
+	}
+
+	if len(src) == 0 || len(dst) == 0 || len(src) != len(dst) {
+		return false
+	}
+
+	srcmap := make(map[string]bool)
+
+	for _, or := range src {
+		srcmap[GenKey(or.ObjectReference)] = true
+	}
+
+	for _, or := range dst {
+		if _, ok := srcmap[GenKey(or.ObjectReference)]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+func EqualDecisions(src, dst []corev1.ObjectReference) bool {
 	if len(src) == 0 && len(dst) == 0 {
 		return true
 	}

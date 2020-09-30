@@ -27,6 +27,8 @@ type objectReferenceIndex struct {
 	Items []*corev1.ObjectReference
 }
 
+var defaultScore = int16(corev1alpha1.DefaultScore)
+
 func (oi objectReferenceIndex) Len() int {
 	return len(oi.Items)
 }
@@ -45,7 +47,7 @@ func (oi objectReferenceIndex) Swap(x, y int) {
 	oi.Items[x], oi.Items[y] = oi.Items[y], oi.Items[x]
 }
 
-func (r *ReconcileAlphabetAdvisor) Recommend(instance *corev1alpha1.PlacementRule) []corev1.ObjectReference {
+func (r *ReconcileAlphabetAdvisor) Recommend(instance *corev1alpha1.PlacementRule) []corev1alpha1.ScoredObjectReference {
 	ori := objectReferenceIndex{}
 
 	for _, or := range instance.Status.Candidates {
@@ -61,14 +63,17 @@ func (r *ReconcileAlphabetAdvisor) Recommend(instance *corev1alpha1.PlacementRul
 		}
 	}
 
-	rec := make([]corev1.ObjectReference, reclen)
+	rec := make([]corev1alpha1.ScoredObjectReference, reclen)
 
 	for i, or := range ori.Items {
 		if i == reclen {
 			break
 		}
 
-		rec[i] = *or
+		rec[i] = corev1alpha1.ScoredObjectReference{
+			ObjectReference: *or,
+			Score:           &defaultScore,
+		}
 	}
 
 	return rec
