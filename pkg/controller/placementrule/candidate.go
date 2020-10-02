@@ -15,9 +15,11 @@ package placementrule
 
 import (
 	"context"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
@@ -129,7 +131,20 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 
 			break
 		}
+		// validate the deployer type
+		if instance.Spec.DeployerType != nil && reflect.DeepEqual(gvr, convertMetaGVRToScheme(corev1alpha1.DeployerPlacementTarget)) {
 
+			// retrieve the deployerType
+			deployerType, _, err := unstructured.NestedString(obj.Object, "spec", "type")
+			if err != nil {
+				klog.Error("Failed to retrieve deployer type for ", obj.GetNamespace()+"/"+obj.GetName())
+				return nil, err
+			}
+			if deployerType != *instance.Spec.DeployerType {
+				pass = false
+			}
+
+		}
 		if pass {
 			candiates = append(candiates, or)
 		}
