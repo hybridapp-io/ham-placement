@@ -64,11 +64,6 @@ func (r *ReconcilePlacementRule) getTargetGVR(instance *corev1alpha1.PlacementRu
 		}
 	}
 
-	// no match, now its the time to check default deployer type
-	if dplytype == corev1alpha1.DefaultDeployerType {
-		return convertMetaGVRToScheme(corev1alpha1.DefaultKubernetesPlacementTarget), nil
-	}
-
 	return nil, nil
 }
 
