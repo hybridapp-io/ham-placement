@@ -74,7 +74,7 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 		return nil, nil
 	}
 
-	var candiates []corev1.ObjectReference
+	var candidates []corev1.ObjectReference
 
 	// select by targetLabels, nil = everything
 	listopts := metav1.ListOptions{}
@@ -146,11 +146,11 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 
 		}
 		if pass {
-			candiates = append(candiates, or)
+			candidates = append(candidates, or)
 		}
 	}
 
-	return candiates, nil
+	return candidates, nil
 }
 
 func isSameCandidateList(candidates []corev1.ObjectReference, instance *corev1alpha1.PlacementRule) bool {
