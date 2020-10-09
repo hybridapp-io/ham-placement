@@ -125,6 +125,9 @@ func (r *ReconcilePlacementRule) Reconcile(request reconcile.Request) (reconcile
 	// if spec has been changed, reset it
 	if instance.Status.ObservedGeneration != instance.GetGeneration() || !isSameCandidateList(ncans, instance) {
 		err = r.resetDecisionMakingProcess(ncans, instance)
+		if err != nil {
+			klog.Error("Following error occurred during resetDecisionMakingProcess: ", err)
+		}
 
 		return reconcile.Result{}, err
 	}
