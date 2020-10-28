@@ -103,6 +103,7 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 
 	// build candidate list, filter targets, nil = everything
 	for _, obj := range tl.Items {
+
 		or := corev1.ObjectReference{
 			Kind:       obj.GroupVersionKind().Kind,
 			Name:       obj.GetName(),
@@ -110,8 +111,20 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 			APIVersion: obj.GetAPIVersion(),
 			UID:        obj.GetUID(),
 		}
-
 		pass := true
+
+		// check ignored targets
+		for _, ignoredTarget := range corev1alpha1.IgnoredTargets {
+			if or.Kind == ignoredTarget.Kind && or.APIVersion == ignoredTarget.APIVersion &&
+				or.Name == ignoredTarget.Name && or.Namespace == ignoredTarget.Namespace {
+				pass = false
+				break
+			}
+		}
+
+		if !pass {
+			continue
+		}
 
 		// check targets
 		if len(instance.Spec.Targets) > 0 {
@@ -131,6 +144,7 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 
 			break
 		}
+
 		// validate the deployer type
 		if instance.Spec.DeployerType != nil && reflect.DeepEqual(gvr, convertMetaGVRToScheme(corev1alpha1.DeployerPlacementTarget)) {
 
@@ -145,6 +159,7 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 			}
 
 		}
+
 		if pass {
 			candidates = append(candidates, or)
 		}

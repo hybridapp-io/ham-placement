@@ -53,6 +53,12 @@ var (
 		Version:  "v1alpha1",
 		Resource: "clusters",
 	}
+	DefaultKubernetesPlacementTargetGVK = &metav1.GroupVersionKind{
+		Group:   "clusterregistry.k8s.io",
+		Version: "v1alpha1",
+		Kind:    "Cluster",
+	}
+
 	DeployerPlacementTarget = &metav1.GroupVersionResource{
 		Group:    "core.hybridapp.io",
 		Version:  "v1alpha1",
