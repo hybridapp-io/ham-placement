@@ -22,10 +22,25 @@ import (
 
 type AdvisorType string
 
+var (
+	// IgnoredTargets represents an array of ignored targets
+	IgnoredTargets = []corev1.ObjectReference{
+		{
+			Name:       LocalClusterName,
+			Namespace:  LocalClusterName,
+			Kind:       DefaultKubernetesPlacementTargetGVK.Kind,
+			APIVersion: DefaultKubernetesPlacementTarget.Group + "/" + DefaultKubernetesPlacementTarget.Version,
+		},
+	}
+)
+
 const (
 	AdvisorTypeUnknown   AdvisorType = ""
 	AdvisorTypePredicate AdvisorType = "predicate"
 	AdvisorTypePriority  AdvisorType = "priority"
+
+	// LocalClusterName is the name of the local cluster representation on hub
+	LocalClusterName = "local-cluster"
 )
 
 const (
