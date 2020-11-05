@@ -45,7 +45,7 @@ const (
 
 const (
 	DefaultAdvisorWeight  = 100
-	DefaultDecisionWeight = 10000
+	DefaultDecisionWeight = 100
 	DefaultScore          = 100
 )
 
@@ -63,7 +63,7 @@ type PlacementRuleSpec struct {
 	DeployerType   *string                  `json:"deployerType,omitempty"`   // default: kubernetes
 	Targets        []corev1.ObjectReference `json:"targets,omitempty"`        // nil: all
 	TargetLabels   *metav1.LabelSelector    `json:"targetLabels,omitempty"`   // nil: all
-	DecisionWeight *int16                   `json:"decisionWeight,omitempty"` // nil: 10000
+	DecisionWeight *int16                   `json:"decisionWeight,omitempty"` // nil: 100
 	Replicas       *int16                   `json:"replicas,omitempty"`       // nil: all
 	Advisors       []Advisor                `json:"advisors,omitempty"`
 }
