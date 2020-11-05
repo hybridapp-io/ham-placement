@@ -161,8 +161,13 @@ func (d *DefaultDecisionMaker) reduceCandidates(instance *corev1alpha1.Placement
 
 			for _, or := range rec {
 				if _, ok := cadweightmap[advisorutils.GenKey(or.ObjectReference)]; ok {
-					newweight := int16(weight) + *or.Score
-					cadweightmap[advisorutils.GenKey(or.ObjectReference)] += int(newweight)
+					//scored recommendations
+					if or.Score != nil {
+						newweight := (*or.Score / 100) * int16(weight)
+						cadweightmap[advisorutils.GenKey(or.ObjectReference)] += int(newweight)
+					} else {
+						cadweightmap[advisorutils.GenKey(or.ObjectReference)] += weight
+					}
 				}
 			}
 		}
@@ -180,7 +185,7 @@ func (d *DefaultDecisionMaker) reduceCandidates(instance *corev1alpha1.Placement
 	}
 
 	// reduce lowest n candidates
-	elmap := make(map[string]corev1.ObjectReference)
+	eliminationMap := make(map[string]corev1.ObjectReference)
 	step := d.calculateStep()
 
 	var newcandidates []corev1.ObjectReference
@@ -188,15 +193,15 @@ func (d *DefaultDecisionMaker) reduceCandidates(instance *corev1alpha1.Placement
 	for _, or := range instance.Status.Candidates {
 		c := *or.DeepCopy()
 
-		if len(elmap) < step {
-			elmap[advisorutils.GenKey(c)] = c
+		if len(eliminationMap) < step {
+			eliminationMap[advisorutils.GenKey(c)] = c
 			continue
 		}
 
-		for k, el := range elmap {
+		for k, el := range eliminationMap {
 			if cadweightmap[advisorutils.GenKey(el)] > cadweightmap[advisorutils.GenKey(c)] {
-				delete(elmap, k)
-				elmap[advisorutils.GenKey(c)] = c
+				delete(eliminationMap, k)
+				eliminationMap[advisorutils.GenKey(c)] = c
 				c = el
 			}
 		}
@@ -207,7 +212,7 @@ func (d *DefaultDecisionMaker) reduceCandidates(instance *corev1alpha1.Placement
 	instance.Status.Candidates = newcandidates
 	instance.Status.Recommendations = nil
 
-	for _, or := range elmap {
+	for _, or := range eliminationMap {
 		instance.Status.Eliminators = append(instance.Status.Eliminators, *or.DeepCopy())
 	}
 }
