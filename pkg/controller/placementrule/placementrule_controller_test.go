@@ -476,6 +476,375 @@ func TestExplicitDeployersOnHub(t *testing.T) {
 	g.Expect(pr.Status.Decisions[0].APIVersion).To(Equal(ibminfraDeployer.APIVersion))
 }
 
+func TestSingleTarget(t *testing.T) {
+	g := NewWithT(t)
+
+	var c client.Client
+
+	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
+	// channel when it is finished.
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	c = mgr.GetClient()
+
+	rec := newReconciler(mgr)
+	recFn, requests := SetupTestReconcile(rec)
+
+	g.Expect(add(mgr, recFn)).To(Succeed())
+
+	stopMgr, mgrStopped := StartTestManager(mgr, g)
+
+	defer func() {
+		close(stopMgr)
+		mgrStopped.Wait()
+	}()
+
+	cl1 := mc1.DeepCopy()
+	g.Expect(c.Create(context.TODO(), cl1)).NotTo(HaveOccurred())
+	// reload the cluster object
+	g.Expect(c.Get(context.TODO(), mc1Key, cl1)).NotTo(HaveOccurred())
+
+	defer func() {
+		if err = c.Delete(context.TODO(), cl1); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	pr := placementRule.DeepCopy()
+	// targets: cl1
+	cl1Target := corev1.ObjectReference{
+		Name:       cl1.Name,
+		Namespace:  cl1.Namespace,
+		APIVersion: cl1.APIVersion,
+	}
+	pr.Spec.Targets = []corev1.ObjectReference{
+		cl1Target,
+	}
+	defer func() {
+		if err = c.Delete(context.TODO(), pr); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	cl2 := mc2.DeepCopy()
+	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
+	// reload the cluster object
+	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
+
+	defer func() {
+		if err = c.Delete(context.TODO(), cl2); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	g.Expect(c.Create(context.TODO(), pr)).To(Succeed())
+
+	// wait for maiin reconciliation
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+
+	// wait for reconciliation triggered by status update
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+
+	// reload the object, as status has been populated in the meantime
+	g.Expect(c.Get(context.TODO(), prKey, pr)).NotTo(HaveOccurred())
+
+	// candidate cl1
+	g.Expect(len(pr.Status.Candidates)).To(Equal(1))
+	g.Expect(pr.Status.Candidates[0].Name).To(Equal(cl1.Name))
+	g.Expect(pr.Status.Candidates[0].Namespace).To(Equal(cl1.Namespace))
+	g.Expect(pr.Status.Candidates[0].APIVersion).To(Equal(cl1.APIVersion))
+
+	// decision cl1
+	g.Expect(len(pr.Status.Decisions)).To(Equal(1))
+	g.Expect(pr.Status.Decisions[0].Name).To(Equal(cl1.Name))
+	g.Expect(pr.Status.Decisions[0].Namespace).To(Equal(cl1.Namespace))
+}
+
+func TestTwoTargetsSingleReplica(t *testing.T) {
+	g := NewWithT(t)
+
+	var c client.Client
+
+	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
+	// channel when it is finished.
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	c = mgr.GetClient()
+
+	rec := newReconciler(mgr)
+	recFn, requests := SetupTestReconcile(rec)
+
+	g.Expect(add(mgr, recFn)).To(Succeed())
+
+	stopMgr, mgrStopped := StartTestManager(mgr, g)
+
+	defer func() {
+		close(stopMgr)
+		mgrStopped.Wait()
+	}()
+
+	cl1 := mc1.DeepCopy()
+	g.Expect(c.Create(context.TODO(), cl1)).NotTo(HaveOccurred())
+	// reload the cluster object
+	//g.Expect(c.Get(context.TODO(), mc1Key, cl1)).NotTo(HaveOccurred())
+
+	defer func() {
+		if err = c.Delete(context.TODO(), cl1); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	cl2 := mc2.DeepCopy()
+	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
+	// reload the cluster object
+	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
+
+	defer func() {
+		if err = c.Delete(context.TODO(), cl2); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	pr := placementRule.DeepCopy()
+	cl1Target := corev1.ObjectReference{
+		Name:       cl1.Name,
+		Namespace:  cl1.Namespace,
+		APIVersion: cl1.APIVersion,
+	}
+	cl2Target := corev1.ObjectReference{
+		Name:       cl2.Name,
+		Namespace:  cl2.Namespace,
+		APIVersion: cl2.APIVersion,
+	}
+	pr.Spec.Targets = []corev1.ObjectReference{
+		cl1Target,
+		cl2Target,
+	}
+	var replica int16 = int16(defaultReplicas)
+	pr.Spec.Replicas = &replica
+	defer func() {
+		if err = c.Delete(context.TODO(), pr); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	g.Expect(c.Create(context.TODO(), pr)).To(Succeed())
+
+	// wait for main reconciliation
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+	g.Expect(c.Get(context.TODO(), prKey, pr)).NotTo(HaveOccurred())
+
+	g.Expect(len(pr.Status.Candidates)).To(Equal(2))
+	g.Expect(len(pr.Status.Decisions)).To(Equal(0))
+
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+	g.Expect(c.Get(context.TODO(), prKey, pr)).NotTo(HaveOccurred())
+
+	g.Expect(len(pr.Status.Candidates)).To(Equal(1))
+	g.Expect(len(pr.Status.Decisions)).To(Equal(0))
+
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+	g.Expect(c.Get(context.TODO(), prKey, pr)).NotTo(HaveOccurred())
+
+	g.Expect(len(pr.Status.Candidates)).To(Equal(1))
+	g.Expect(len(pr.Status.Decisions)).To(Equal(1))
+	g.Expect(pr.Status.Candidates[0].Name).To(Equal(pr.Status.Decisions[0].Name))
+	g.Expect(pr.Status.Candidates[0].Namespace).To(Equal(pr.Status.Decisions[0].Namespace))
+}
+
+func TestTwoTargetsTwoReplicas(t *testing.T) {
+	g := NewWithT(t)
+
+	var c client.Client
+
+	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
+	// channel when it is finished.
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	c = mgr.GetClient()
+
+	rec := newReconciler(mgr)
+	recFn, requests := SetupTestReconcile(rec)
+
+	g.Expect(add(mgr, recFn)).To(Succeed())
+
+	stopMgr, mgrStopped := StartTestManager(mgr, g)
+
+	defer func() {
+		close(stopMgr)
+		mgrStopped.Wait()
+	}()
+
+	cl1 := mc1.DeepCopy()
+	g.Expect(c.Create(context.TODO(), cl1)).NotTo(HaveOccurred())
+	// reload the cluster object
+	//g.Expect(c.Get(context.TODO(), mc1Key, cl1)).NotTo(HaveOccurred())
+
+	defer func() {
+		if err = c.Delete(context.TODO(), cl1); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	cl2 := mc2.DeepCopy()
+	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
+	// reload the cluster object
+	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
+
+	defer func() {
+		if err = c.Delete(context.TODO(), cl2); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	pr := placementRule.DeepCopy()
+	cl1Target := corev1.ObjectReference{
+		Name:       cl1.Name,
+		Namespace:  cl1.Namespace,
+		APIVersion: cl1.APIVersion,
+	}
+	cl2Target := corev1.ObjectReference{
+		Name:       cl2.Name,
+		Namespace:  cl2.Namespace,
+		APIVersion: cl2.APIVersion,
+	}
+	pr.Spec.Targets = []corev1.ObjectReference{
+		cl1Target,
+		cl2Target,
+	}
+	var replica int16 = int16(2)
+	pr.Spec.Replicas = &replica
+	defer func() {
+		if err = c.Delete(context.TODO(), pr); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	g.Expect(c.Create(context.TODO(), pr)).To(Succeed())
+
+	// wait for main reconciliation
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+	g.Expect(c.Get(context.TODO(), prKey, pr)).NotTo(HaveOccurred())
+
+	g.Expect(len(pr.Status.Candidates)).To(Equal(2))
+	g.Expect(len(pr.Status.Decisions)).To(Equal(0))
+
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+	g.Expect(c.Get(context.TODO(), prKey, pr)).NotTo(HaveOccurred())
+
+	g.Expect(len(pr.Status.Candidates)).To(Equal(2))
+	g.Expect(len(pr.Status.Decisions)).To(Equal(2))
+}
+
+func TestTwoTargetsWithLabelsTwoReplicas(t *testing.T) {
+	g := NewWithT(t)
+
+	var c client.Client
+
+	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
+	// channel when it is finished.
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
+	g.Expect(err).NotTo(HaveOccurred())
+
+	c = mgr.GetClient()
+
+	rec := newReconciler(mgr)
+	recFn, requests := SetupTestReconcile(rec)
+
+	g.Expect(add(mgr, recFn)).To(Succeed())
+
+	stopMgr, mgrStopped := StartTestManager(mgr, g)
+
+	defer func() {
+		close(stopMgr)
+		mgrStopped.Wait()
+	}()
+
+	labelsMap := make(map[string]string)
+	labelsMap["test_label"] = "test"
+
+	cl1 := mc1.DeepCopy()
+	cl1.Labels = labelsMap
+	g.Expect(c.Create(context.TODO(), cl1)).NotTo(HaveOccurred())
+	// reload the cluster object
+	//g.Expect(c.Get(context.TODO(), mc1Key, cl1)).NotTo(HaveOccurred())
+
+	defer func() {
+		if err = c.Delete(context.TODO(), cl1); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	cl2 := mc2.DeepCopy()
+	cl2.Labels = labelsMap
+	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
+	// reload the cluster object
+	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
+
+	defer func() {
+		if err = c.Delete(context.TODO(), cl2); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	pr := placementRule.DeepCopy()
+	cl1Target := corev1.ObjectReference{
+		Name:       cl1.Name,
+		Namespace:  cl1.Namespace,
+		APIVersion: cl1.APIVersion,
+	}
+	cl2Target := corev1.ObjectReference{
+		Name:       cl2.Name,
+		Namespace:  cl2.Namespace,
+		APIVersion: cl2.APIVersion,
+	}
+	pr.Spec.Targets = []corev1.ObjectReference{
+		cl1Target,
+		cl2Target,
+	}
+	var lSelector = metav1.LabelSelector{
+		MatchLabels: labelsMap,
+	}
+	pr.Spec.TargetLabels = &lSelector
+	var replica int16 = int16(2)
+	pr.Spec.Replicas = &replica
+	defer func() {
+		if err = c.Delete(context.TODO(), pr); err != nil {
+			klog.Error(err)
+			t.Fail()
+		}
+	}()
+
+	g.Expect(c.Create(context.TODO(), pr)).To(Succeed())
+
+	// wait for main reconciliation
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+	g.Expect(c.Get(context.TODO(), prKey, pr)).NotTo(HaveOccurred())
+
+	g.Expect(len(pr.Status.Candidates)).To(Equal(2))
+	g.Expect(len(pr.Status.Decisions)).To(Equal(0))
+
+	g.Eventually(requests, timeout, interval).Should(Receive(Equal(expectedRequest)))
+	g.Expect(c.Get(context.TODO(), prKey, pr)).NotTo(HaveOccurred())
+
+	g.Expect(len(pr.Status.Candidates)).To(Equal(2))
+	g.Expect(len(pr.Status.Decisions)).To(Equal(2))
+}
+
 func TestCandidates(t *testing.T) {
 	g := NewWithT(t)
 
