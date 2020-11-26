@@ -90,8 +90,14 @@ func (r *ReconcilePlacementRule) generateCandidates(instance *corev1alpha1.Place
 	}
 
 	gvr, err := r.getTargetGVR(instance)
-	if gvr == nil {
+	if err != nil {
 		klog.Error("Failed to get target GroupVersionResource for placement rule with error: ", err)
+		return nil, err
+	}
+	if gvr == nil {
+		klog.Error("No target GroupVersionResource could be found for placement rule ", instance.Namespace+"/"+instance.Name,
+			". If deployerType is defined in the placement rule , a matching explicit deployer needs to exist on the platform.")
+
 		return nil, err
 	}
 
