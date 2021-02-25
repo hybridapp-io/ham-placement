@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	managedclusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -101,13 +101,11 @@ var (
 	// managed cluster 1
 	mc1Name = "mc1"
 	mc1Key  = types.NamespacedName{
-		Name:      mc1Name,
-		Namespace: mc1Name,
+		Name: mc1Name,
 	}
-	mc1 = &clusterv1alpha1.Cluster{
+	mc1 = &managedclusterv1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      mc1Name,
-			Namespace: mc1Name,
+			Name: mc1Name,
 		},
 	}
 
@@ -119,10 +117,9 @@ var (
 
 	// managed cluster 2
 	mc2Name = "mc2"
-	mc2     = &clusterv1alpha1.Cluster{
+	mc2     = &managedclusterv1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      mc2Name,
-			Namespace: mc2Name,
+			Name: mc2Name,
 		},
 	}
 
@@ -134,10 +131,9 @@ var (
 
 	// managed cluster 3
 	mc3Name = "mc3"
-	mc3     = &clusterv1alpha1.Cluster{
+	mc3     = &managedclusterv1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      mc3Name,
-			Namespace: mc3Name,
+			Name: mc3Name,
 		},
 	}
 
@@ -531,8 +527,6 @@ func TestSingleTarget(t *testing.T) {
 
 	cl2 := mc2.DeepCopy()
 	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
-	// reload the cluster object
-	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
 
 	defer func() {
 		if err = c.Delete(context.TODO(), cl2); err != nil {
@@ -602,8 +596,6 @@ func TestTwoTargetsSingleReplica(t *testing.T) {
 
 	cl2 := mc2.DeepCopy()
 	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
-	// reload the cluster object
-	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
 
 	defer func() {
 		if err = c.Delete(context.TODO(), cl2); err != nil {
@@ -698,8 +690,6 @@ func TestTwoTargetsTwoReplicas(t *testing.T) {
 
 	cl2 := mc2.DeepCopy()
 	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
-	// reload the cluster object
-	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
 
 	defer func() {
 		if err = c.Delete(context.TODO(), cl2); err != nil {
@@ -791,8 +781,6 @@ func TestTwoTargetsWithLabelsTwoReplicas(t *testing.T) {
 	cl2 := mc2.DeepCopy()
 	cl2.Labels = labelsMap
 	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
-	// reload the cluster object
-	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
 
 	defer func() {
 		if err = c.Delete(context.TODO(), cl2); err != nil {
@@ -871,8 +859,6 @@ func TestCandidates(t *testing.T) {
 
 	cl1 := mc1.DeepCopy()
 	g.Expect(c.Create(context.TODO(), cl1)).NotTo(HaveOccurred())
-	// reload the cluster object
-	//g.Expect(c.Get(context.TODO(), mc1Key, cl1)).NotTo(HaveOccurred())
 
 	defer func() {
 		if err = c.Delete(context.TODO(), cl1); err != nil {
@@ -883,8 +869,6 @@ func TestCandidates(t *testing.T) {
 
 	cl2 := mc2.DeepCopy()
 	g.Expect(c.Create(context.TODO(), cl2)).NotTo(HaveOccurred())
-	// reload the cluster object
-	//g.Expect(c.Get(context.TODO(), mc2Key, cl2)).NotTo(HaveOccurred())
 
 	defer func() {
 		if err = c.Delete(context.TODO(), cl2); err != nil {
@@ -895,8 +879,6 @@ func TestCandidates(t *testing.T) {
 
 	cl3 := mc3.DeepCopy()
 	g.Expect(c.Create(context.TODO(), cl3)).NotTo(HaveOccurred())
-	// reload the cluster object
-	//g.Expect(c.Get(context.TODO(), mc3Key, cl3)).NotTo(HaveOccurred())
 
 	defer func() {
 		if err = c.Delete(context.TODO(), cl3); err != nil {

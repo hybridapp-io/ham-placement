@@ -33,7 +33,7 @@ spec:
           spec:
             description: 'PlacementRuleSpec defines the desired state of PlacementRule
               For different deployer type, the target might be different. Default
-              kuberentes target: clusters.clusterregistry.k8s.io'
+              kuberentes target: managedclusters.cluster.open-cluster-management.io'
             properties:
               advisors:
                 items:
