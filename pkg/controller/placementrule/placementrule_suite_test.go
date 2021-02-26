@@ -22,9 +22,9 @@ import (
 
 	apis "github.com/hybridapp-io/ham-placement/pkg/apis"
 	"github.com/onsi/gomega"
+	managedclusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		klog.Fatal(err)
 	}
-	err = clusterv1alpha1.AddToScheme(scheme.Scheme)
+	err = managedclusterv1.AddToScheme(scheme.Scheme)
 	if err != nil {
 		klog.Fatal(err)
 	}

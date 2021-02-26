@@ -58,7 +58,7 @@ type Advisor struct {
 
 // PlacementRuleSpec defines the desired state of PlacementRule
 // For different deployer type, the target might be different.
-// Default kuberentes target: clusters.clusterregistry.k8s.io
+// Default kuberentes target: managedclusters.cluster.open-cluster-management.io"
 type PlacementRuleSpec struct {
 	DeployerType   *string                  `json:"deployerType,omitempty"`   // default: kubernetes
 	Targets        []corev1.ObjectReference `json:"targets,omitempty"`        // nil: all

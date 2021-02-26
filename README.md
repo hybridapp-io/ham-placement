@@ -98,15 +98,15 @@ ham-placementrule   1/1     1            1           2m20s
 Register cluster CRD and clusters
 
 ```shell
-% kubectl apply -f hack/test/cluster-registry-crd.yaml
-customresourcedefinition.apiextensions.k8s.io/clusters.clusterregistry.k8s.io created
+% kubectl apply -f hack/test/open-cluster-management.io_managedclusters.crd.yaml
+customresourcedefinition.apiextensions.k8s.io/managedclusters.cluster.open-cluster-management.io created
 % kubectl apply -f hack/test/crs/clusters.yaml
 namespace/raleigh created
-cluster.clusterregistry.k8s.io/raleigh created
+managedcluster.cluster.open-cluster-management.io/raleigh created
 namespace/toronto created
-cluster.clusterregistry.k8s.io/toronto created
+managedcluster.cluster.open-cluster-management.io/toronto created
 namespace/shanghai created
-cluster.clusterregistry.k8s.io/shanghai created
+managedcluster.cluster.open-cluster-management.io/shanghai created
 % kubectl get clusters --all-namespaces --show-labels
 NAMESPACE   NAME      AGE   LABELS
 raleigh     raleigh   38s   cloud=IBM,datacenter=raleigh,environment=Dev,name=raleigh,owner=marketing,region=US,vendor=ICP
@@ -147,24 +147,24 @@ Spec:
       Cloud:  IBM
 Status:
   Candidates:
-    API Version:  clusterregistry.k8s.io/v1alpha1
+    API Version:  cluster.open-cluster-management.io/v1
     Kind:         Cluster
     Name:         shanghai
     Namespace:    shanghai
     UID:          66c83e70-4184-4eed-b593-09abb4e5d7a3
-    API Version:  clusterregistry.k8s.io/v1alpha1
+    API Version:  cluster.open-cluster-management.io/v1
     Kind:         Cluster
     Name:         toronto
     Namespace:    toronto
     UID:          f43e6fbe-8b32-4ee6-986c-f87fdbc83f51
   Decisions:
-    API Version:  clusterregistry.k8s.io/v1alpha1
+    API Version:  cluster.open-cluster-management.io/v1
     Kind:         Cluster
     Name:         shanghai
     Namespace:    shanghai
     UID:          66c83e70-4184-4eed-b593-09abb4e5d7a3
   Eliminators:
-    API Version:        clusterregistry.k8s.io/v1alpha1
+    API Version:        cluster.open-cluster-management.io/v1
     Kind:               Cluster
     Name:               raleigh
     Namespace:          raleigh
@@ -173,18 +173,18 @@ Status:
   Observed Generation:  1
   Recommendations:
     Alphabet:
-      API Version:  clusterregistry.k8s.io/v1alpha1
+      API Version:  cluster.open-cluster-management.io/v1
       Kind:         Cluster
       Name:         shanghai
       Namespace:    shanghai
       UID:          66c83e70-4184-4eed-b593-09abb4e5d7a3
     Veto:
-      API Version:  clusterregistry.k8s.io/v1alpha1
+      API Version:  cluster.open-cluster-management.io/v1
       Kind:         Cluster
       Name:         shanghai
       Namespace:    shanghai
       UID:          66c83e70-4184-4eed-b593-09abb4e5d7a3
-      API Version:  clusterregistry.k8s.io/v1alpha1
+      API Version:  cluster.open-cluster-management.io/v1
       Kind:         Cluster
       Name:         toronto
       Namespace:    toronto
