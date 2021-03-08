@@ -439,7 +439,8 @@ func (in *PlacementRuleStatus) DeepCopyInto(out *PlacementRuleStatus) {
 			if val == nil {
 				(*out)[key] = nil
 			} else {
-				in, out := &val, &outVal
+				value := val
+				in, out := &value, &outVal
 				*out = make(Recommendation, len(*in))
 				for i := range *in {
 					(*in)[i].DeepCopyInto(&(*out)[i])
