@@ -85,8 +85,6 @@ var _ reconcile.Reconciler = &ReconcilePlacementRule{}
 
 // ReconcilePlacementRule reconciles a PlacementRule object
 type ReconcilePlacementRule struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
 	client        client.Client
 	scheme        *runtime.Scheme
 	dynamicClient dynamic.Interface
