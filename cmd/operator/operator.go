@@ -29,8 +29,8 @@ import (
 	"github.com/hybridapp-io/ham-placement/version"
 
 	"github.com/operator-framework/operator-lib/leader"
+	"github.com/operator-framework/operator-sdk/internal/k8sutil"
 	sdkVersion "github.com/operator-framework/operator-sdk/internal/version"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
