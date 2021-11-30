@@ -7,8 +7,11 @@ require (
 	github.com/onsi/gomega v1.10.5
 	github.com/open-cluster-management/api v0.0.0-20200610161514-939cead3902c
 	github.com/operator-framework/operator-lib v0.1.0
-	github.com/operator-framework/operator-sdk v1.0.0
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus/client_golang v1.5.1 // indirect
 	github.com/spf13/pflag v1.0.5
+	google.golang.org/appengine v1.6.5 // indirect
+	google.golang.org/protobuf v1.25.0 // indirect
 	k8s.io/api v0.18.6
 	k8s.io/apiextensions-apiserver v0.18.6
 	k8s.io/apimachinery v0.18.6

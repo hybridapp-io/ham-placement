@@ -29,7 +29,6 @@ import (
 	"github.com/hybridapp-io/ham-placement/version"
 
 	"github.com/operator-framework/operator-lib/leader"
-	sdkVersion "github.com/operator-framework/operator-sdk/internal/version"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -41,16 +40,14 @@ const (
 
 // Change below variables to serve metrics on different host or port.
 var (
-	metricsHost               = ""
-	metricsPort         int32 = 38383
-	operatorMetricsPort int32 = 38686
+	metricsHost       = ""
+	metricsPort int32 = 38383
 )
 
 func printVersion() {
 	klog.Info(fmt.Sprintf("Operator Version: %s", version.Version))
 	klog.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	klog.Info(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
-	klog.Info(fmt.Sprintf("Version of operator-sdk: %v", sdkVersion.Version))
 }
 
 // getWatchNamespace returns the Namespace the operator should be watching for changes
