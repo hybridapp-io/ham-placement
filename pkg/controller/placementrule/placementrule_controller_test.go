@@ -619,7 +619,7 @@ func TestTwoTargetsSingleReplica(t *testing.T) {
 		cl1Target,
 		cl2Target,
 	}
-	var replica int16 = int16(defaultReplicas)
+	var replica = int16(defaultReplicas)
 	pr.Spec.Replicas = &replica
 	defer func() {
 		if err = c.Delete(context.TODO(), pr); err != nil {
@@ -713,7 +713,7 @@ func TestTwoTargetsTwoReplicas(t *testing.T) {
 		cl1Target,
 		cl2Target,
 	}
-	var replica int16 = int16(2)
+	var replica = int16(2)
 	pr.Spec.Replicas = &replica
 	defer func() {
 		if err = c.Delete(context.TODO(), pr); err != nil {
@@ -808,7 +808,7 @@ func TestTwoTargetsWithLabelsTwoReplicas(t *testing.T) {
 		MatchLabels: labelsMap,
 	}
 	pr.Spec.TargetLabels = &lSelector
-	var replica int16 = int16(2)
+	var replica = int16(2)
 	pr.Spec.Replicas = &replica
 	defer func() {
 		if err = c.Delete(context.TODO(), pr); err != nil {
@@ -899,7 +899,7 @@ func TestCandidates(t *testing.T) {
 	**/
 
 	pr := placementRule.DeepCopy()
-	var replica int16 = int16(defaultReplicas)
+	var replica = int16(defaultReplicas)
 	pr.Spec.Replicas = &replica
 	defer func() {
 		if err = c.Delete(context.TODO(), pr); err != nil {
@@ -990,7 +990,7 @@ func TestScoredAndUnscoredRecommendations(t *testing.T) {
 	}()
 
 	pr := placementRule.DeepCopy()
-	var replica int16 = int16(defaultReplicas)
+	var replica = int16(defaultReplicas)
 	pr.Spec.Replicas = &replica
 	pr.Spec.Advisors = []corev1alpha1.Advisor{
 		*advisor1,
