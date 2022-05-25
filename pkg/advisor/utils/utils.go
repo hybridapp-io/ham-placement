@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"fmt"
 	"strings"
 
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
@@ -24,7 +25,7 @@ import (
 
 var (
 	zeroObjectReference = corev1.ObjectReference{
-		UID: types.UID(0),
+		UID: types.UID(rune(0)),
 	}
 
 	EmptyRecommendatation = []corev1.ObjectReference{
