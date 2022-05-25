@@ -15,7 +15,6 @@
 package utils
 
 import (
-	"fmt"
 	"strings"
 
 	corev1alpha1 "github.com/hybridapp-io/ham-placement/pkg/apis/core/v1alpha1"
