@@ -162,7 +162,8 @@ endif
 
 build-push-image: build-image push-image
 
-build-image: install-operator-sdk
+build-image: $(CONFIG_DOCKER_TARGET) build
+	# @echo $(DOCKER_BUILD_OPTS)
 	@echo "Building the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker build -t $(REGISTRY)/$(IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) $(DOCKER_BUILD_OPTS) -f Dockerfile .
 
