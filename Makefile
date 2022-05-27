@@ -139,7 +139,7 @@ coverage: install-kubebuilder
 
 build:
 	@echo "Building the $(IMAGE_NAME) binary for $(LOCAL_ARCH)..."
-	@GOARCH=$(LOCAL_ARCH) common/scripts/gobuild.sh build/_output/bin/$(IMAGE_NAME) ./cmd/manager
+	@GOARCH=$(LOCAL_ARCH) common/scripts/gobuild.sh build/_output/bin/ham-placement ./cmd/manager
 
 ############################################################
 # image section
@@ -151,9 +151,9 @@ endif
 
 build-push-image: build-image push-image
 
-build-image: install-operator-sdk
+build-image: build
 	@echo "Building the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@operator-sdk build $(IMAGE_REPO)/$(IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@docker build -t $(IMAGE_REPO)/$(IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) $(DOCKER_BUILD_OPTS) -f build/Dockerfile .
 
 push-image: $(CONFIG_DOCKER_TARGET) build-image
 	@echo "Pushing the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
