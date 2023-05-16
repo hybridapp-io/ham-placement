@@ -11,18 +11,19 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [What is the PlacementRule in Hybrid Application Model](#what-is-the-placementrule-in-hybrid-application-model)
-- [Community, discussion, contribution, and support](#community-discussion-contribution-and-support)
-- [Getting Started](#getting-started)
+- [ham-placement](#ham-placement)
+  - [What is the PlacementRule in Hybrid Application Model](#what-is-the-placementrule-in-hybrid-application-model)
+  - [Community, discussion, contribution, and support](#community-discussion-contribution-and-support)
+  - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Quick Start](#quick-start)
-        - [Clone PlacementRule Repository](#clone-placementrule-repository)
-        - [Build Deployable Operator](#build-deployable-operator)
-        - [Install Deployable Operator](#install-deployable-operator)
-        - [Play with Examples](#play-with-examples)
-        - [Uninstall Deployable Operator](#uninstall-deployable-operator)
+      - [Clone PlacementRule Repository](#clone-placementrule-repository)
+      - [Build Deployable Operator](#build-deployable-operator)
+      - [Install Deployable Operator](#install-deployable-operator)
+      - [Play with Examples](#play-with-examples)
+      - [Uninstall Deployable Operator](#uninstall-deployable-operator)
     - [Troubleshooting](#troubleshooting)
-- [References](#references)
+  - [References](#references)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -90,7 +91,7 @@ Verify ham-placementrule is up and running.
 ```shell
 $ kubectl get deployment
 NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
-ham-placementrule   1/1     1            1           2m20s
+ham-placementrule   1/1     1            1           2m21s
 ```
 
 #### Play with Examples
