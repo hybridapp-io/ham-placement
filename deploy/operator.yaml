@@ -16,7 +16,7 @@ spec:
       containers:
         - name: ham-placement
           # Replace this with the built image name
-          image: quay.io/hybridappio/ham-placementrule
+          image:quay.io/cicdtest/ham-placementrule
           command:
           - ham-placement
           imagePullPolicy: Always
