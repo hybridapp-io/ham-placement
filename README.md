@@ -169,7 +169,7 @@ Status:
     Kind:               Cluster
     Name:               raleigh
     Namespace:          raleigh
-    UID:                54577532-d293-44de-b3b5-bfa8ffbaf9a9
+    UID:                54777532-d293-44de-b3b5-bfa8ffbaf9a9
   Last Update Time:     2020-06-30T02:36:28Z
   Observed Generation:  1
   Recommendations:
