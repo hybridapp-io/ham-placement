@@ -1,6 +1,6 @@
 # ham-placement
 
-[![Build](http://prow.purple-chesterfield.com/badge.svg?jobs=build-ham-placement-amd64-postsubmit)](http://prow.purple-chesterfield.com/?job=build-ham-placement-amd64-postsubmit)
+[![Build](http://prow.yellow-chesterfield.com/badge.svg?jobs=build-ham-placement-amd64-postsubmit)](http://prow.yellow-chesterfield.com/?job=build-ham-placement-amd64-postsubmit)
 [![GoDoc](https://godoc.org/github.com/hybridapp-io/ham-placement?status.svg)](https://godoc.org/github.com/hybridapp-io/ham-placement)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hybridapp-io/ham-placement)](https://goreportcard.com/report/github.com/hybridapp-io/ham-placement)
 [![Code Coverage](https://codecov.io/gh/hybridapp-io/ham-placement/branch/master/graphs/badge.svg?branch=master)](https://codecov.io/gh/hybridapp-io/ham-placement?branch=master)
