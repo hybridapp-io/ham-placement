@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6
 # Update image
 RUN microdnf update -y && microdnf clean all
 
-LABEL   name="quay.io/hybridappio/ham-placementrule" \
+LABEL   name="quay.io/cicdtest/ham-placementrule" \
         summary="Hybrid Application Model - PlacementRule" \
         description="PlacementRule define where to deploy application components"
 

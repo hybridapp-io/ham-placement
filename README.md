@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/hybridapp-io/ham-placement)](https://goreportcard.com/report/github.com/hybridapp-io/ham-placement)
 [![Code Coverage](https://codecov.io/gh/hybridapp-io/ham-placement/branch/master/graphs/badge.svg?branch=master)](https://codecov.io/gh/hybridapp-io/ham-placement?branch=master)
 [![License](https://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
-[![Image](https://quay.io/repository/hybridappio/ham-placementrule/status)](https://quay.io/repository/hybridappio/ham-placementrule?tab=tags)
+[![Image](https://quay.io/repository/cicdtest/ham-placementrule/status)](https://quay.io/repository/cicdtest/ham-placementrule?tab=tags)
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
