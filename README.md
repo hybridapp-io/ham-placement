@@ -189,7 +189,7 @@ Status:
       Kind:         Cluster
       Name:         toronto
       Namespace:    toronto
-      UID:          f43e6fbe-8b32-4ee6-986c-f87fdbc83f51
+      UID:          f42e6fbe-8b32-4ee6-986c-f87fdbc83f51
 Events:     <none>
 ```
 
